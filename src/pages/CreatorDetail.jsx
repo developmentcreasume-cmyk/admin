@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import Badge, { FoundingBadge, SubscriptionBadge } from '../components/Badge.jsx'
-import { api, API_BASE } from '../services/api.js'
+import { api } from '../services/api.js'
 import ProfileTab from './cardBuilder/ProfileTab.jsx'
 import StatsTab from './cardBuilder/StatsTab.jsx'
 import AudienceTab from './cardBuilder/AudienceTab.jsx'
@@ -20,11 +20,16 @@ const DEFAULT_PACKAGES = [
   { tier: 'Campaign', price: 0, deliverables: '', revisions: 3 },
 ]
 
-// Map the public /public/:username payload into the shape the card-builder
-// tabs already consume (stats.followers, demographics.age{}, recentPosts[], …).
-function adaptPublic(pub, creatorDoc, influencer) {
-  const s = pub?.stats || {}
-  const media = pub?.media || []
+// Map the admin detail payload (creator + influencer + cached analytics + growth)
+// into the shape the card-builder tabs consume. All data is cached server-side,
+// so this is instant — no live Instagram calls on page view.
+function adaptDetail(detail) {
+  const creatorDoc = detail.creator || {}
+  const influencer = detail.influencer || {}
+  const analytics = detail.analytics || {}
+  const media = analytics.media || []
+  const growthArr = detail.growth || []
+
   const avgLikes = media.length
     ? Math.round(media.reduce((a, m) => a + (m.like_count || 0), 0) / media.length)
     : 0
@@ -33,7 +38,7 @@ function adaptPublic(pub, creatorDoc, influencer) {
     : 0
 
   // Demographics arrays of {key,value} → objects/arrays the tabs expect.
-  const dem = pub?.demographics
+  const dem = analytics.demographics
   let demographics = null
   if (dem) {
     const ageObj = {}
@@ -80,20 +85,22 @@ function adaptPublic(pub, creatorDoc, influencer) {
       tokenValidUntil: influencer?.tokenExpiresAt ? new Date(influencer.tokenExpiresAt).toLocaleDateString() : null,
     },
     stats: {
-      followers: s.followersCount || 0,
-      following: s.followsCount || 0,
-      posts: s.mediaCount || 0,
-      engagement: s.engagementRate || 0,
-      reach: s.reach || 0,
-      impressions: s.views || 0,
+      followers: influencer.followersCount || 0,
+      following: influencer.followsCount || 0,
+      posts: influencer.mediaCount || 0,
+      engagement: analytics.engagementRate || 0,
+      reach: analytics.reach || 0,
+      impressions: analytics.views || 0,
       avgLikes,
       avgComments,
     },
     demographics,
-    followerGrowth: (pub?.growth || []).map((g) => g.followers),
+    followerGrowth: growthArr,
     recentPosts: media.map((m, i) => ({
       id: m.id,
       tone: TONES[i % TONES.length],
+      // VIDEO/REEL items have no media_url image — use thumbnail_url for the preview.
+      image: m.media_type === 'VIDEO' ? m.thumbnail_url || m.media_url : m.media_url || m.thumbnail_url,
       caption: m.caption || '',
       type: m.media_type === 'VIDEO' ? 'REEL' : m.media_type === 'CAROUSEL_ALBUM' ? 'CAROUSEL' : 'IMAGE',
       permalink: m.permalink,
@@ -142,16 +149,8 @@ export default function CreatorDetail() {
         const detail = await api.creator(id)
         const c = detail.creator
 
-        // Public live analytics (best-effort — keyed by username).
-        let pub = {}
-        if (c.username) {
-          try {
-            const r = await fetch(`${API_BASE}/public/${encodeURIComponent(c.username)}`)
-            pub = await r.json()
-          } catch { /* live data optional */ }
-        }
-
-        const adapted = adaptPublic(pub, c, detail.influencer)
+        // All analytics are cached server-side — instant, no live IG calls here.
+        const adapted = adaptDetail(detail)
         if (cancelled) return
 
         setCreator(adapted)
@@ -232,18 +231,10 @@ export default function CreatorDetail() {
   async function refresh() {
     setRefreshing(true)
     try {
+      // Server does the live IG fetch + caches it, then we re-read the cache.
       await api.refreshCreator(id)
-      // Re-pull live data after refresh.
       const detail = await api.creator(id)
-      const c = detail.creator
-      let pub = {}
-      if (c.username) {
-        try {
-          const r = await fetch(`${API_BASE}/public/${encodeURIComponent(c.username)}`)
-          pub = await r.json()
-        } catch { /* optional */ }
-      }
-      setCreator(adaptPublic(pub, c, detail.influencer))
+      setCreator(adaptDetail(detail))
       flash('Instagram data refreshed')
     } catch (err) {
       flash(err.message || 'Refresh failed')

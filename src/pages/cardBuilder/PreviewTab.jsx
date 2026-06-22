@@ -90,7 +90,19 @@ export default function PreviewTab({ creator, draft }) {
         <Section title="Recent Posts">
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8 }}>
             {creator.recentPosts.slice(0, 8).map((p) => (
-              <a key={p.id} href={p.permalink} target="_blank" rel="noreferrer" title={p.caption} style={{ aspectRatio: '1 / 1', background: p.tone, borderRadius: 8 }} />
+              <a
+                key={p.id}
+                href={p.permalink}
+                target="_blank"
+                rel="noreferrer"
+                title={p.caption}
+                style={{
+                  aspectRatio: '1 / 1',
+                  background: p.image ? `center / cover no-repeat url(${p.image})` : p.tone,
+                  borderRadius: 8,
+                  display: 'block',
+                }}
+              />
             ))}
           </div>
         </Section>

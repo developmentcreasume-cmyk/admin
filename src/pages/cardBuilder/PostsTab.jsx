@@ -18,8 +18,16 @@ export default function PostsTab({ creator }) {
       >
         {posts.map((p) => (
           <div key={p.id} className="card" style={{ overflow: 'hidden' }}>
-            {/* Thumbnail placeholder (real thumbnail comes from API permalink) */}
+            {/* Thumbnail from Instagram (media_url / thumbnail_url); tone is the fallback. */}
             <div style={{ position: 'relative', aspectRatio: '1 / 1', background: p.tone }}>
+              {p.image && (
+                <img
+                  src={p.image}
+                  alt={p.caption || p.type}
+                  loading="lazy"
+                  style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                />
+              )}
               <span className="badge" style={{ position: 'absolute', top: 8, left: 8, background: '#fff' }}>
                 <span className={`badge badge-${TYPE_TONE[p.type]}`}>{p.type}</span>
               </span>
