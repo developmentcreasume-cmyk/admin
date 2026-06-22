@@ -93,6 +93,7 @@ export default function Creators() {
           <thead>
             <tr>
               <th>Creator</th>
+              <th>Instagram</th>
               <th>Plan</th>
               <th>Founding</th>
               <th>Card</th>
@@ -112,6 +113,20 @@ export default function Creators() {
                       <div className="text-xs muted">@{r.username}</div>
                     </div>
                   </div>
+                </td>
+                <td>
+                  {r.instagramConnected ? (
+                    <div>
+                      <Badge tone="green">● Connected</Badge>
+                      {r.followersCount != null && (
+                        <div className="text-xs muted mt-4">
+                          {Number(r.followersCount).toLocaleString()} followers
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <Badge tone="neutral">Not connected</Badge>
+                  )}
                 </td>
                 <td>
                   <Badge tone="neutral">{(r.planTier || 'free').replace(/^\w/, (c) => c.toUpperCase())}</Badge>
@@ -137,14 +152,14 @@ export default function Creators() {
             ))}
             {!loading && rows.length === 0 && (
               <tr>
-                <td colSpan={7}>
+                <td colSpan={8}>
                   <div className="empty">No creators match your filters.</div>
                 </td>
               </tr>
             )}
             {loading && (
               <tr>
-                <td colSpan={7}>
+                <td colSpan={8}>
                   <div className="empty">Loading…</div>
                 </td>
               </tr>

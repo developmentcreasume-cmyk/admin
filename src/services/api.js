@@ -61,6 +61,8 @@ export const api = {
   addCreator: (body) => post('/admin/creators', body),
   updateCreator: (id, body) => patch(`/admin/creators/${id}`, body),
   refreshCreator: (id) => post(`/admin/creators/${id}/refresh`),
+  // Instagram OAuth — start the connect flow for THIS creator (state = creatorId).
+  instagramConnectUrl: (id) => `${API_BASE}/auth/instagram?state=${encodeURIComponent(id)}`,
   saveStats: (id, statOverrides) => patch(`/admin/creators/${id}/stats`, { statOverrides }),
   savePortfolio: (id, portfolio) => put(`/admin/creators/${id}/portfolio`, { portfolio }),
   savePackages: (id, packages) => put(`/admin/creators/${id}/packages`, { packages }),

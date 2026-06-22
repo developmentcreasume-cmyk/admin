@@ -123,6 +123,16 @@ export default function CreatorDetail() {
   const [savedMsg, setSavedMsg] = useState('')
   const [draft, setDraft] = useState(null)
 
+  // Returning from the Instagram OAuth flow (?ig=connected|error): show a
+  // message and strip the param so a refresh doesn't repeat it.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const ig = params.get('ig')
+    if (!ig) return
+    flash(ig === 'connected' ? 'Instagram connected ✓' : 'Instagram connection failed')
+    navigate(`/creators/${id}`, { replace: true })
+  }, [id, navigate])
+
   // Load admin detail + public live data, then build the adapter object.
   useEffect(() => {
     let cancelled = false
@@ -335,7 +345,7 @@ export default function CreatorDetail() {
       </div>
 
       {/* Instagram connection */}
-      <InstagramPanel ig={creator.instagram} onRefresh={refresh} refreshing={refreshing} />
+      <InstagramPanel creatorId={id} ig={creator.instagram} onRefresh={refresh} refreshing={refreshing} />
 
       {/* Influence Card Builder */}
       <div className="card">
@@ -377,7 +387,13 @@ export default function CreatorDetail() {
   )
 }
 
-function InstagramPanel({ ig, onRefresh, refreshing }) {
+function InstagramPanel({ creatorId, ig, onRefresh, refreshing }) {
+  // Kick off the Instagram OAuth flow for this creator. The backend redirects
+  // back to /creators/:id?ig=connected once the token is linked.
+  function connect() {
+    window.location.href = api.instagramConnectUrl(creatorId)
+  }
+
   if (!ig?.connected) {
     return (
       <div className="card card-pad row items-center justify-between flex-wrap gap-12" style={{ marginBottom: 22 }}>
@@ -386,10 +402,13 @@ function InstagramPanel({ ig, onRefresh, refreshing }) {
           <div>
             <div className="fw-600 text-sm">Instagram not connected</div>
             <div className="text-xs muted">
-              Creator must connect via Meta OAuth. Business or Creator accounts only — personal accounts aren’t supported.
+              Connect via Instagram OAuth to pull live analytics. Business or Creator accounts only — personal accounts aren’t supported.
             </div>
           </div>
         </div>
+        <button className="btn btn-primary" onClick={connect}>
+          Connect Instagram
+        </button>
       </div>
     )
   }
@@ -410,9 +429,12 @@ function InstagramPanel({ ig, onRefresh, refreshing }) {
           </div>
         </div>
       </div>
-      <button className="btn" onClick={onRefresh} disabled={refreshing}>
-        {refreshing ? 'Refreshing…' : '↻ Refresh data'}
-      </button>
+      <div className="row items-center gap-8 flex-wrap">
+        <button className="btn" onClick={connect}>Reconnect</button>
+        <button className="btn" onClick={onRefresh} disabled={refreshing}>
+          {refreshing ? 'Refreshing…' : '↻ Refresh data'}
+        </button>
+      </div>
     </div>
   )
 }
