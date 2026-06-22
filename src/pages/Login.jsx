@@ -94,10 +94,6 @@ export default function Login() {
           <button type="submit" className="btn btn-primary" style={{ width: '100%', justifyContent: 'center' }} disabled={loading}>
             {loading ? 'Signing in…' : 'Sign in'}
           </button>
-
-          <p className="text-xs faint mt-16" style={{ textAlign: 'center', margin: '16px 0 0' }}>
-            Demo: admin@gmail.com / 12345
-          </p>
         </form>
 
         <p className="text-xs faint" style={{ textAlign: 'center', marginTop: 18 }}>
