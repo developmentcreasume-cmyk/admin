@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext.jsx'
 
-export default function Topbar() {
+export default function Topbar({ onMenu }) {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
   const [open, setOpen] = useState(false)
@@ -19,20 +19,14 @@ export default function Topbar() {
     .join('')
 
   return (
-    <header
-      style={{
-        height: 'var(--topbar-h)',
-        borderBottom: '1px solid var(--border)',
-        background: '#fff',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'flex-end',
-        padding: '0 28px',
-        position: 'sticky',
-        top: 0,
-        zIndex: 20,
-      }}
-    >
+    <header className="topbar">
+      {/* Hamburger — visible only on mobile (CSS-controlled) */}
+      <button className="topbar-menu-btn" onClick={onMenu} aria-label="Open menu">
+        ☰
+      </button>
+
+      <div style={{ flex: 1 }} />
+
       <div style={{ position: 'relative' }}>
         <button
           onClick={() => setOpen((o) => !o)}
@@ -40,7 +34,7 @@ export default function Topbar() {
           style={{ border: 'none', background: 'none', padding: 4 }}
         >
           <span className="avatar">{initials}</span>
-          <span className="text-sm fw-600" style={{ color: 'var(--text)' }}>
+          <span className="text-sm fw-600 topbar-username" style={{ color: 'var(--text)' }}>
             {user?.name}
           </span>
           <span className="faint" style={{ fontSize: 10 }}>▾</span>

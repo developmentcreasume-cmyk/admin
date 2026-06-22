@@ -7,21 +7,16 @@ const NAV = [
   { to: '/enquiries', label: 'Enquiries', icon: '✉' },
 ]
 
-export default function Sidebar() {
+export default function Sidebar({ open = false, onClose }) {
   return (
-    <aside
-      style={{
-        width: 'var(--sidebar-w)',
-        borderRight: '1px solid var(--border)',
-        background: '#fff',
-        display: 'flex',
-        flexDirection: 'column',
-        position: 'fixed',
-        top: 0,
-        bottom: 0,
-        left: 0,
-      }}
-    >
+    <>
+      {/* Backdrop (mobile only, when drawer is open) */}
+      <div
+        className={`sidebar-backdrop${open ? ' is-open' : ''}`}
+        onClick={onClose}
+        aria-hidden
+      />
+      <aside className={`sidebar${open ? ' is-open' : ''}`}>
       <div
         className="row items-center gap-8"
         style={{ height: 'var(--topbar-h)', padding: '0 20px', borderBottom: '1px solid var(--border)' }}
@@ -53,6 +48,7 @@ export default function Sidebar() {
             key={item.to}
             to={item.to}
             end={item.end}
+            onClick={onClose}
             style={({ isActive }) => ({
               display: 'flex',
               alignItems: 'center',
@@ -80,6 +76,7 @@ export default function Sidebar() {
           Private — Creasume team only
         </p>
       </div>
-    </aside>
+      </aside>
+    </>
   )
 }

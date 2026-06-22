@@ -40,6 +40,13 @@ body,
   margin: 0;
 }
 
+/* Never allow the page itself to scroll sideways on small screens. */
+html,
+body {
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
 body {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica,
     Arial, sans-serif;
@@ -282,4 +289,165 @@ table.table {
   text-align: center;
   padding: 48px 20px;
   color: var(--text-faint);
+}
+
+/* ============================================================
+   App shell (sidebar + topbar + content)
+   ============================================================ */
+
+.sidebar {
+  width: var(--sidebar-w);
+  border-right: 1px solid var(--border);
+  background: #fff;
+  display: flex;
+  flex-direction: column;
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 60;
+}
+
+.sidebar-backdrop {
+  display: none;
+}
+
+.app-shell {
+  margin-left: var(--sidebar-w);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  min-width: 0; /* let children shrink instead of overflowing */
+}
+
+.app-main {
+  padding: 28px;
+  flex: 1;
+  max-width: 1180px;
+  width: 100%;
+  min-width: 0;
+}
+
+.topbar {
+  height: var(--topbar-h);
+  border-bottom: 1px solid var(--border);
+  background: #fff;
+  display: flex;
+  align-items: center;
+  padding: 0 28px;
+  position: sticky;
+  top: 0;
+  z-index: 20;
+}
+
+/* Card-builder tab bar — scrolls horizontally if it overflows */
+.tabbar {
+  display: flex;
+  gap: 2px;
+  overflow-x: auto;
+  max-width: 100%;
+  scrollbar-width: none;
+}
+.tabbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* Hamburger button — hidden on desktop, shown on mobile */
+.topbar-menu-btn {
+  display: none;
+  border: 1px solid var(--border-strong);
+  background: #fff;
+  border-radius: var(--radius-sm);
+  width: 38px;
+  height: 38px;
+  font-size: 18px;
+  line-height: 1;
+  margin-right: 12px;
+  color: var(--text);
+}
+
+/* ============================================================
+   Mobile / tablet
+   ============================================================ */
+
+@media (max-width: 768px) {
+  /* Sidebar becomes an off-canvas drawer */
+  .sidebar {
+    transform: translateX(-100%);
+    transition: transform 0.22s ease;
+    box-shadow: 0 0 40px rgba(0, 0, 0, 0.16);
+  }
+  .sidebar.is-open {
+    transform: translateX(0);
+  }
+
+  .sidebar-backdrop.is-open {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background: rgba(17, 17, 17, 0.32);
+    z-index: 50;
+  }
+
+  /* Content takes full width; topbar shows the hamburger */
+  .app-shell {
+    margin-left: 0;
+  }
+  .topbar-menu-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .topbar {
+    padding: 0 16px;
+  }
+  .app-main {
+    padding: 18px 14px;
+  }
+
+  /* Keep all cards within the viewport */
+  .card {
+    max-width: 100%;
+  }
+  .card-pad {
+    padding: 16px;
+  }
+
+  /* Inputs and selects shouldn't force the row wider than the screen */
+  .input,
+  .select,
+  .textarea {
+    max-width: 100%;
+  }
+
+  /* Stat tiles / metric cards go full width and stack */
+  .page-head {
+    margin-bottom: 16px;
+  }
+
+  /* Page headers stack their actions below the title */
+  .page-head h1 {
+    font-size: 19px;
+  }
+
+  /* Tables: let them scroll horizontally instead of squashing */
+  .table-wrap {
+    -webkit-overflow-scrolling: touch;
+  }
+  .table th,
+  .table td {
+    padding: 11px 12px;
+    white-space: nowrap;
+  }
+}
+
+@media (max-width: 480px) {
+  .app-main {
+    padding: 14px 12px;
+  }
+  /* Hide the admin's name next to the avatar on very small screens */
+  .topbar .topbar-username {
+    display: none;
+  }
 }

@@ -340,13 +340,14 @@ export default function CreatorDetail() {
       {/* Influence Card Builder */}
       <div className="card">
         <div className="row items-center justify-between flex-wrap gap-12" style={{ borderBottom: '1px solid var(--border)', padding: '0 16px' }}>
-          <div className="row" style={{ gap: 2 }}>
+          <div className="tabbar">
             {TABS.map((t) => (
               <button
                 key={t}
                 onClick={() => setTab(t)}
                 style={{
                   border: 'none', background: 'none', padding: '14px 14px', fontSize: 13.5, fontWeight: 600,
+                  whiteSpace: 'nowrap',
                   color: tab === t ? 'var(--text)' : 'var(--text-soft)',
                   borderBottom: tab === t ? '2px solid var(--accent)' : '2px solid transparent', marginBottom: -1,
                 }}
@@ -355,7 +356,7 @@ export default function CreatorDetail() {
               </button>
             ))}
           </div>
-          <div className="row items-center gap-8">
+          <div className="row items-center gap-8 flex-wrap">
             {savedMsg && <span className="badge badge-green">{savedMsg}</span>}
             <button className="btn btn-sm" onClick={() => saveCard(false)}>Save draft</button>
             <button className="btn btn-sm btn-primary" onClick={() => saveCard(true)}>Publish</button>
