@@ -10,7 +10,7 @@ import PortfolioTab from './cardBuilder/PortfolioTab.jsx'
 import PackagesTab from './cardBuilder/PackagesTab.jsx'
 import PreviewTab from './cardBuilder/PreviewTab.jsx'
 
-const TABS = ['Profile', 'Stats', 'Audience', 'Posts', 'Portfolio', 'Packages', 'Preview']
+const TABS = ['Profile', 'Stats', 'Audience', 'Posts', 'Collaboration', 'Packages', 'Preview']
 const TONES = ['#e8eef7', '#f3eae8', '#e8f3ec', '#f5f0e6', '#efe8f3', '#e6f1f3']
 const SUB_LABEL = { active: 'Active', trial: 'Trial', inactive: 'Inactive', past_due: 'Past due', canceled: 'Canceled' }
 
@@ -67,6 +67,10 @@ function adaptDetail(detail) {
     bio: creatorDoc.bio || '',
     niche: creatorDoc.niche || '',
     location: creatorDoc.location || '',
+    socialLinks: (creatorDoc.socialLinks || []).map((l) => ({
+      platform: l.platform || '',
+      url: l.url || '',
+    })),
     plan: (creatorDoc.planTier || 'free').replace(/^\w/, (c) => c.toUpperCase()),
     founding: creatorDoc.isFoundingCreator,
     verified: creatorDoc.isVerified,
@@ -162,14 +166,30 @@ export default function CreatorDetail() {
           niche: adapted.niche,
           location: adapted.location,
           bio: adapted.bio,
+          socialLinks: adapted.socialLinks,
           stats: { ...adapted.stats, ...(c.statOverrides || {}) },
           portfolio: (detail.collaborations || []).map((col) => ({
             id: col._id,
             brand: col.brandName,
             campaign: col.campaignTitle,
+            description: col.description || '',
             category: col.category || '',
             link: col.link || '',
             logo: col.logo || '',
+            // Linked IG collab post + fetched metrics (preserved across edits).
+            instagramUrl: col.instagramUrl || '',
+            mediaId: col.mediaId || '',
+            mediaType: col.mediaType || '',
+            postImage: col.postImage || '',
+            postCaption: col.postCaption || '',
+            reach: col.reach || 0,
+            views: col.views || 0,
+            likes: col.likes || 0,
+            comments: col.comments || 0,
+            saves: col.saves || 0,
+            shares: col.shares || 0,
+            engagementRate: col.engagementRate || 0,
+            metricsFetchedAt: col.metricsFetchedAt || null,
           })),
           packages: (detail.packages || []).length
             ? detail.packages.map((p) => ({
@@ -261,6 +281,8 @@ export default function CreatorDetail() {
         niche: draft.niche,
         location: draft.location,
         bio: draft.bio,
+        // Persist the social-links list (blank rows are dropped server-side).
+        socialLinks: (draft.socialLinks || []).filter((l) => l.platform && l.url.trim()),
       })
       await api.publishCard(id, !publish)
       flash(publish ? 'Card published' : 'Draft saved')
@@ -369,9 +391,9 @@ export default function CreatorDetail() {
           {tab === 'Stats' && <StatsTab creator={creator} draft={draft} setDraft={setDraft} />}
           {tab === 'Audience' && <AudienceTab creator={creator} />}
           {tab === 'Posts' && <PostsTab creator={creator} />}
-          {tab === 'Portfolio' && <PortfolioTab draft={draft} setDraft={setDraft} />}
+          {tab === 'Collaboration' && <PortfolioTab creatorId={id} draft={draft} setDraft={setDraft} />}
           {tab === 'Packages' && <PackagesTab draft={draft} setDraft={setDraft} />}
-          {tab === 'Preview' && <PreviewTab creator={creator} draft={draft} />}
+          {tab === 'Preview' && <PreviewTab creator={creator} draft={draft} packagesActive={(draft?.packages || []).length > 0} />}
         </div>
       </div>
     </div>

@@ -4,7 +4,7 @@ import BarStat from '../../components/BarStat.jsx'
 import { DEMOGRAPHICS_MIN_FOLLOWERS } from '../../data/mockData.js'
 
 /** Preview tab — live preview of the public Influence Card as visitors see it. */
-export default function PreviewTab({ creator, draft }) {
+export default function PreviewTab({ creator, draft, packagesActive = true }) {
   const [cat, setCat] = useState('All')
 
   const categories = useMemo(
@@ -138,7 +138,8 @@ export default function PreviewTab({ creator, draft }) {
           </Section>
         )}
 
-        {/* Packages */}
+        {/* Packages — hidden when the admin turns the section off */}
+        {packagesActive && (
         <Section title="Collaboration Packages">
           <div className="row gap-8 flex-wrap">
             {draft.packages.map((p) => (
@@ -160,6 +161,7 @@ export default function PreviewTab({ creator, draft }) {
             ))}
           </div>
         </Section>
+        )}
 
         {/* Work With Me */}
         <Section title="Work With Me" last>

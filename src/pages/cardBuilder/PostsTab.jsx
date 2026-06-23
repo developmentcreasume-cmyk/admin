@@ -7,7 +7,7 @@ export default function PostsTab({ creator }) {
   return (
     <div>
       <p className="text-sm muted" style={{ marginTop: 0 }}>
-        Up to the last 12 posts fetched from Instagram. Engagement (likes, comments, saves, shares) is live.
+        All posts fetched from Instagram. Engagement (likes, comments, saves, shares) is live.
       </p>
       <div
         style={{

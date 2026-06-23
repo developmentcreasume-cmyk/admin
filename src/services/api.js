@@ -41,6 +41,25 @@ const post = (p, body) => request(p, { method: 'POST', body: JSON.stringify(body
 const patch = (p, body) => request(p, { method: 'PATCH', body: JSON.stringify(body || {}) })
 const put = (p, body) => request(p, { method: 'PUT', body: JSON.stringify(body || {}) })
 
+// Upload one image file (multipart). Do NOT set Content-Type — the browser must
+// add the multipart boundary itself. Returns { success, url }.
+async function uploadFile(path, file) {
+  const token = tokenStore.get()
+  const form = new FormData()
+  form.append('file', file)
+  const res = await fetch(`${API_BASE}${path}`, {
+    method: 'POST',
+    headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+    body: form,
+  })
+  const data = await res.json().catch(() => ({}))
+  if (res.status === 401) tokenStore.clear()
+  if (!res.ok || data.success === false) {
+    throw new Error(data.error || `Upload failed (${res.status})`)
+  }
+  return data
+}
+
 export const api = {
   // Auth
   login: (email, password) => post('/admin/auth/login', { email, password }),
@@ -63,8 +82,13 @@ export const api = {
   refreshCreator: (id) => post(`/admin/creators/${id}/refresh`),
   // Instagram OAuth — start the connect flow for THIS creator (state = creatorId).
   instagramConnectUrl: (id) => `${API_BASE}/auth/instagram?state=${encodeURIComponent(id)}`,
+  // Image upload — returns { success, url }. Used for brand logos, etc.
+  uploadImage: (file) => uploadFile('/admin/uploads', file),
+
   saveStats: (id, statOverrides) => patch(`/admin/creators/${id}/stats`, { statOverrides }),
   savePortfolio: (id, portfolio) => put(`/admin/creators/${id}/portfolio`, { portfolio }),
+  // Resolve an IG collab post URL → that post's metrics (reach/engagement/etc).
+  fetchCollabPost: (id, url) => post(`/admin/creators/${id}/collab-metrics`, { url }),
   savePackages: (id, packages) => put(`/admin/creators/${id}/packages`, { packages }),
   publishCard: (id, draft = false) => post(`/admin/creators/${id}/publish`, { draft }),
 
