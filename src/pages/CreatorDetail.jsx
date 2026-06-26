@@ -20,6 +20,25 @@ const DEFAULT_PACKAGES = [
   { tier: 'Campaign', price: 0, deliverables: '', revisions: 3 },
 ]
 
+// Enforce the card rules on a package list: at most ONE per tier, at most 3
+// tiers, and at most one "Most Popular". Cleans up any corrupt/legacy data
+// (duplicate tiers or multiple popular flags) on load so the UI stays sane.
+function sanitizePackages(list) {
+  const seen = new Set()
+  let popularUsed = false
+  const out = []
+  for (const p of list || []) {
+    const key = (p.tier || '').toLowerCase()
+    if (!key || seen.has(key)) continue
+    seen.add(key)
+    const isPopular = !!p.isPopular && !popularUsed
+    if (isPopular) popularUsed = true
+    out.push({ ...p, isPopular })
+    if (out.length >= 3) break
+  }
+  return out
+}
+
 // Map the admin detail payload (creator + influencer + cached analytics + growth)
 // into the shape the card-builder tabs consume. All data is cached server-side,
 // so this is instant — no live Instagram calls on page view.
@@ -192,13 +211,15 @@ export default function CreatorDetail() {
             metricsFetchedAt: col.metricsFetchedAt || null,
           })),
           packages: (detail.packages || []).length
-            ? detail.packages.map((p) => ({
-                tier: (p.tier || p.title || '').replace(/^\w/, (ch) => ch.toUpperCase()),
-                price: p.pricing || 0,
-                deliverables: (p.deliverables || []).join(', '),
-                revisions: p.revisions || 0,
-                isPopular: !!p.isPopular,
-              }))
+            ? sanitizePackages(
+                detail.packages.map((p) => ({
+                  tier: (p.tier || p.title || '').replace(/^\w/, (ch) => ch.toUpperCase()),
+                  price: p.pricing || 0,
+                  deliverables: (p.deliverables || []).join(', '),
+                  revisions: p.revisions || 0,
+                  isPopular: !!p.isPopular,
+                })),
+              )
             : DEFAULT_PACKAGES,
         })
       } catch (e) {

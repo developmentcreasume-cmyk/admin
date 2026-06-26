@@ -36,7 +36,9 @@ export default function PortfolioTab({ creatorId, draft, setDraft }) {
 
   function addEntry() {
     if (!form.brand.trim()) return
-    const entry = { ...form, id: `p_${draft.portfolio.length + 1}_${form.brand.slice(0, 3)}` }
+    // Unique id from a counter + brand so two quick adds never collide (a
+    // length-based id could repeat if an entry was removed).
+    const entry = { ...form, id: `p_${Date.now()}_${form.brand.slice(0, 3)}` }
     setDraft({ ...draft, portfolio: [...draft.portfolio, entry] })
     setForm(EMPTY)
     setFetchError('')
