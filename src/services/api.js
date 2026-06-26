@@ -79,6 +79,7 @@ export const api = {
   creator: (id) => get(`/admin/creators/${id}`),
   addCreator: (body) => post('/admin/creators', body),
   updateCreator: (id, body) => patch(`/admin/creators/${id}`, body),
+  deleteCreator: (id) => request(`/admin/creators/${id}`, { method: 'DELETE' }),
   refreshCreator: (id) => post(`/admin/creators/${id}/refresh`),
   // Instagram OAuth — start the connect flow for THIS creator (state = creatorId).
   instagramConnectUrl: (id) => `${API_BASE}/auth/instagram?state=${encodeURIComponent(id)}`,

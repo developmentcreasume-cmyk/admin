@@ -150,6 +150,7 @@ export default function CreatorDetail() {
   const [cardActive, setCardActive] = useState(false)
   const [slug, setSlug] = useState('')
   const [refreshing, setRefreshing] = useState(false)
+  const [deleting, setDeleting] = useState(false)
   const [savedMsg, setSavedMsg] = useState('')
   const [draft, setDraft] = useState(null)
 
@@ -284,6 +285,22 @@ export default function CreatorDetail() {
     }
   }
 
+  // Permanently delete this creator and all of their data, then go back to the list.
+  async function deleteAccount() {
+    const name = creator?.name || 'this creator'
+    if (!window.confirm(
+      `Delete ${name}'s account permanently?\n\nThis removes their Instagram link, analytics, collaborations, packages and inquiries, and takes their public page offline. This cannot be undone.`
+    )) return
+    setDeleting(true)
+    try {
+      await api.deleteCreator(id)
+      navigate('/creators', { replace: true })
+    } catch (err) {
+      flash(err.message || 'Delete failed')
+      setDeleting(false)
+    }
+  }
+
   // Persist the whole card builder (overrides + portfolio + packages).
   async function saveCard(publish) {
     try {
@@ -350,9 +367,14 @@ export default function CreatorDetail() {
             </div>
           </div>
         </div>
-        <button className="btn" onClick={refresh} disabled={refreshing}>
-          {refreshing ? 'Refreshing…' : '↻ Refresh Instagram data'}
-        </button>
+        <div className="row items-center gap-8">
+          <button className="btn" onClick={refresh} disabled={refreshing}>
+            {refreshing ? 'Refreshing…' : '↻ Refresh Instagram data'}
+          </button>
+          <button className="btn btn-danger" onClick={deleteAccount} disabled={deleting}>
+            {deleting ? 'Deleting…' : '🗑 Delete account'}
+          </button>
+        </div>
       </div>
 
       {/* Management controls */}
