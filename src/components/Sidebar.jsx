@@ -2,9 +2,11 @@ import { NavLink } from 'react-router-dom'
 
 const NAV = [
   { to: '/', label: 'Overview', icon: '◧', end: true },
-  { to: '/waitlist', label: 'Waitlist', icon: '☰' },
   { to: '/creators', label: 'Creators', icon: '◎' },
   { to: '/enquiries', label: 'Enquiries', icon: '✉' },
+  { to: '/plans', label: 'Plans', icon: '₹' },
+  { to: '/payments', label: 'Payments', icon: '◈' },
+  { to: '/settings', label: 'Settings', icon: '⚙' },
 ]
 
 export default function Sidebar({ open = false, onClose }) {

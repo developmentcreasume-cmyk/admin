@@ -110,7 +110,7 @@ export default function Creators() {
                     <span className="avatar">{initials(r.name || r.username)}</span>
                     <div>
                       <div className="fw-600">{r.name || r.username}</div>
-                      <div className="text-xs muted">@{r.username}</div>
+                      <div className="text-xs muted">{r.username ? `@${r.username}` : '—'}</div>
                     </div>
                   </div>
                 </td>

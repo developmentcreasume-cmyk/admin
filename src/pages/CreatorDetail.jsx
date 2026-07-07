@@ -10,6 +10,9 @@ import PortfolioTab from './cardBuilder/PortfolioTab.jsx'
 import PackagesTab from './cardBuilder/PackagesTab.jsx'
 import PreviewTab from './cardBuilder/PreviewTab.jsx'
 
+// Public site that serves the live Influence Card (creasume.com/<username>/<publicId>).
+const PUBLIC_SITE = (import.meta.env.VITE_PUBLIC_URL || 'https://creasume.com').replace(/\/+$/, '')
+
 const TABS = ['Profile', 'Stats', 'Audience', 'Posts', 'Collaboration', 'Packages', 'Preview']
 const TONES = ['#e8eef7', '#f3eae8', '#e8f3ec', '#f5f0e6', '#efe8f3', '#e6f1f3']
 const SUB_LABEL = { active: 'Active', trial: 'Trial', inactive: 'Inactive', past_due: 'Past due', canceled: 'Canceled' }
@@ -82,6 +85,9 @@ function adaptDetail(detail) {
     displayName: creatorDoc.name || creatorDoc.username || '',
     handle: `@${creatorDoc.username || ''}`,
     username: creatorDoc.username,
+    // Opaque id used in the public card URL (/<username>/<publicId>). The card
+    // resolves STRICTLY by this, so the Preview button needs it.
+    publicId: creatorDoc.publicId || '',
     email: creatorDoc.email || '',
     bio: creatorDoc.bio || '',
     niche: creatorDoc.niche || '',
@@ -222,6 +228,9 @@ export default function CreatorDetail() {
                 })),
               )
             : DEFAULT_PACKAGES,
+          // Per-card "show on public card" toggles (key → boolean). Missing/true
+          // = shown, false = hidden. The public Influence Card reads this.
+          metricVisibility: c.metricVisibility || {},
         })
       } catch (e) {
         if (!cancelled) setError(e.message)
@@ -311,7 +320,7 @@ export default function CreatorDetail() {
           overrides[k] = Number(draft.stats[k]) || 0
         }
       }
-      await api.saveStats(id, overrides)
+      await api.saveStats(id, overrides, draft.metricVisibility || {})
       await api.savePortfolio(id, draft.portfolio)
       await api.savePackages(id, draft.packages)
       // Persist niche/location/bio overrides too.
@@ -365,9 +374,23 @@ export default function CreatorDetail() {
               {founding && <FoundingBadge />}
               <SubscriptionBadge status={creator.subscription} />
             </div>
+            {creator.email && (
+              <div className="text-sm" style={{ marginTop: 4, color: 'var(--text-soft, #52525b)' }}>{creator.email}</div>
+            )}
           </div>
         </div>
         <div className="row items-center gap-8">
+          {creator.username && creator.publicId && (
+            <a
+              className="btn"
+              href={`${PUBLIC_SITE}/${encodeURIComponent(creator.username)}/${creator.publicId}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              title={cardActive ? 'Open the live public card' : 'Card is inactive — turn “Public Influence Card” on to make it live'}
+            >
+              👁 Preview card
+            </a>
+          )}
           <button className="btn" onClick={refresh} disabled={refreshing}>
             {refreshing ? 'Refreshing…' : '↻ Refresh Instagram data'}
           </button>

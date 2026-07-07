@@ -90,9 +90,6 @@ export default function Overview() {
         <div className="card card-pad" style={{ width: 280 }}>
           <h3 style={{ margin: '0 0 14px', fontSize: 15 }}>Quick actions</h3>
           <div className="col gap-8">
-            <button className="btn" style={{ justifyContent: 'flex-start' }} onClick={() => navigate('/waitlist')}>
-              ★ Mark as Founding Creator
-            </button>
             <button className="btn" style={{ justifyContent: 'flex-start' }} onClick={() => navigate('/creators')}>
               + Add New Creator
             </button>

@@ -1,5 +1,32 @@
+import { useState } from 'react'
+
 /** Posts tab — recent posts grid (thumbnails, captions, per-post engagement). */
 const TYPE_TONE = { REEL: 'blue', CAROUSEL: 'amber', IMAGE: 'neutral' }
+
+// One post thumbnail. Instagram CDN image URLs expire / are hotlink-protected,
+// so an <img> often fails to load. When it does, we hide it and show the tinted
+// tone placeholder instead of letting the browser paint the (very long) caption
+// as broken-image alt text over the whole square.
+function PostThumb({ image, tone, type }) {
+  const [broken, setBroken] = useState(false)
+  return (
+    <div style={{ position: 'relative', aspectRatio: '1 / 1', background: tone, overflow: 'hidden' }}>
+      {image && !broken && (
+        <img
+          src={image}
+          alt=""
+          loading="lazy"
+          referrerPolicy="no-referrer"
+          onError={() => setBroken(true)}
+          style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+        />
+      )}
+      <span className="badge" style={{ position: 'absolute', top: 8, left: 8, background: '#fff' }}>
+        <span className={`badge badge-${TYPE_TONE[type]}`}>{type}</span>
+      </span>
+    </div>
+  )
+}
 
 export default function PostsTab({ creator }) {
   const posts = creator.recentPosts || []
@@ -19,19 +46,7 @@ export default function PostsTab({ creator }) {
         {posts.map((p) => (
           <div key={p.id} className="card" style={{ overflow: 'hidden' }}>
             {/* Thumbnail from Instagram (media_url / thumbnail_url); tone is the fallback. */}
-            <div style={{ position: 'relative', aspectRatio: '1 / 1', background: p.tone }}>
-              {p.image && (
-                <img
-                  src={p.image}
-                  alt={p.caption || p.type}
-                  loading="lazy"
-                  style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
-                />
-              )}
-              <span className="badge" style={{ position: 'absolute', top: 8, left: 8, background: '#fff' }}>
-                <span className={`badge badge-${TYPE_TONE[p.type]}`}>{p.type}</span>
-              </span>
-            </div>
+            <PostThumb image={p.image} tone={p.tone} type={p.type} />
             <div style={{ padding: 12 }}>
               <div className="text-sm" style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
                 {p.caption}

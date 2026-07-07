@@ -3,10 +3,12 @@ import ProtectedRoute from './components/ProtectedRoute.jsx'
 import Layout from './components/Layout.jsx'
 import Login from './pages/Login.jsx'
 import Overview from './pages/Overview.jsx'
-import Waitlist from './pages/Waitlist.jsx'
 import Creators from './pages/Creators.jsx'
 import CreatorDetail from './pages/CreatorDetail.jsx'
 import Enquiries from './pages/Enquiries.jsx'
+import Plans from './pages/Plans.jsx'
+import Payments from './pages/Payments.jsx'
+import Settings from './pages/Settings.jsx'
 
 export default function App() {
   return (
@@ -21,10 +23,12 @@ export default function App() {
         }
       >
         <Route index element={<Overview />} />
-        <Route path="waitlist" element={<Waitlist />} />
         <Route path="creators" element={<Creators />} />
         <Route path="creators/:id" element={<CreatorDetail />} />
         <Route path="enquiries" element={<Enquiries />} />
+        <Route path="plans" element={<Plans />} />
+        <Route path="payments" element={<Payments />} />
+        <Route path="settings" element={<Settings />} />
       </Route>
 
       <Route path="*" element={<Navigate to="/" replace />} />

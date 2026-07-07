@@ -86,7 +86,8 @@ export const api = {
   // Image upload — returns { success, url }. Used for brand logos, etc.
   uploadImage: (file) => uploadFile('/admin/uploads', file),
 
-  saveStats: (id, statOverrides) => patch(`/admin/creators/${id}/stats`, { statOverrides }),
+  saveStats: (id, statOverrides, metricVisibility) =>
+    patch(`/admin/creators/${id}/stats`, { statOverrides, metricVisibility }),
   savePortfolio: (id, portfolio) => put(`/admin/creators/${id}/portfolio`, { portfolio }),
   // Resolve an IG collab post URL → that post's metrics (reach/engagement/etc).
   fetchCollabPost: (id, url) => post(`/admin/creators/${id}/collab-metrics`, { url }),
@@ -96,6 +97,23 @@ export const api = {
   // Enquiries
   enquiries: (params = {}) => get(`/admin/enquiries${qs(params)}`),
   setEnquiryStatus: (id, status) => patch(`/admin/enquiries/${id}/status`, { status }),
+
+  // Plans (subscription pricing)
+  plans: () => get('/admin/plans'),
+  createPlan: (body) => post('/admin/plans', body),
+  updatePlan: (id, body) => patch(`/admin/plans/${id}`, body),
+  deletePlan: (id) => request(`/admin/plans/${id}`, { method: 'DELETE' }),
+  payments: (limit = 100) => get(`/admin/plans/payments/list?limit=${limit}`),
+  billingOverview: () => get('/admin/plans/billing/overview'),
+
+  // My account
+  updateProfile: (body) => patch('/admin/account/profile', body),
+  changePassword: (currentPassword, newPassword) =>
+    post('/admin/account/password', { currentPassword, newPassword }),
+
+  // Site settings
+  getSettings: () => get('/admin/settings'),
+  updateSettings: (body) => put('/admin/settings', body),
 }
 
 // Build a query string from a params object, skipping empty values.
