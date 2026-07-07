@@ -68,6 +68,7 @@ export const api = {
   // Dashboard
   overview: () => get('/admin/dashboard/overview'),
   activity: (limit = 8) => get(`/admin/dashboard/activity?limit=${limit}`),
+  charts: () => get('/admin/dashboard/charts'),
 
   // Waitlist
   waitlist: (params = {}) => get(`/admin/waitlist${qs(params)}`),

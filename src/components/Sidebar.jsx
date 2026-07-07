@@ -44,28 +44,19 @@ export default function Sidebar({ open = false, onClose }) {
         </span>
       </div>
 
-      <nav style={{ padding: 12, display: 'flex', flexDirection: 'column', gap: 2 }}>
+      <div className="text-xs faint" style={{ padding: '16px 16px 6px', fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase' }}>
+        Menu
+      </div>
+      <nav style={{ padding: '0 12px', display: 'flex', flexDirection: 'column', gap: 2 }}>
         {NAV.map((item) => (
           <NavLink
             key={item.to}
             to={item.to}
             end={item.end}
             onClick={onClose}
-            style={({ isActive }) => ({
-              display: 'flex',
-              alignItems: 'center',
-              gap: 11,
-              padding: '9px 12px',
-              borderRadius: 'var(--radius-sm)',
-              fontSize: 13.5,
-              fontWeight: 500,
-              color: isActive ? 'var(--text)' : 'var(--text-soft)',
-              background: isActive ? 'var(--accent-soft)' : 'transparent',
-            })}
+            className={({ isActive }) => `nav-item${isActive ? ' active' : ''}`}
           >
-            <span style={{ width: 16, textAlign: 'center', fontSize: 14 }} aria-hidden>
-              {item.icon}
-            </span>
+            <span className="nav-ico" aria-hidden>{item.icon}</span>
             {item.label}
           </NavLink>
         ))}

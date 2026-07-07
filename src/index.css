@@ -4,11 +4,11 @@
    ============================================================ */
 
 :root {
-  --bg: #ffffff;
+  --bg: #f5f6f8;
   --surface: #ffffff;
-  --surface-alt: #fafafa;
-  --border: #ececec;
-  --border-strong: #d8d8d8;
+  --surface-alt: #f4f5f7;
+  --border: #e8e9ec;
+  --border-strong: #d6d8dc;
   --text: #111111;
   --text-soft: #6b6b6b;
   --text-faint: #9a9a9a;
@@ -23,9 +23,10 @@
   --blue-bg: #eef3ff;
   --red: #c0392b;
   --red-bg: #fdeeec;
-  --radius: 10px;
-  --radius-sm: 7px;
-  --shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+  --radius: 12px;
+  --radius-sm: 8px;
+  --shadow: 0 1px 2px rgba(17, 20, 24, 0.04), 0 1px 3px rgba(17, 20, 24, 0.06);
+  --shadow-md: 0 4px 12px rgba(17, 20, 24, 0.08);
   --sidebar-w: 244px;
   --topbar-h: 60px;
 }
@@ -42,13 +43,14 @@
   --text: #f2f3f5;
   --text-soft: #a7adb6;
   --text-faint: #71767f;
-  --accent: #4b5563;
+  --accent: #6b7688;
   --accent-soft: color-mix(in srgb, var(--accent) 22%, var(--bg));
   --green-bg: #10261a;
   --amber-bg: #2a2210;
   --blue-bg: #131c33;
   --red-bg: #2b1512;
-  --shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.35), 0 1px 3px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 6px 18px rgba(0, 0, 0, 0.45);
 }
 
 * {
@@ -95,17 +97,22 @@ button {
   align-items: center;
   gap: 7px;
   border: 1px solid var(--border-strong);
-  background: #fff;
+  background: var(--surface);
   color: var(--text);
   padding: 8px 14px;
   border-radius: var(--radius-sm);
   font-size: 13px;
   font-weight: 500;
-  transition: background 0.12s ease, border-color 0.12s ease;
+  box-shadow: var(--shadow);
+  transition: background 0.12s ease, border-color 0.12s ease, box-shadow 0.12s ease, transform 0.05s ease;
   white-space: nowrap;
 }
 .btn:hover {
   background: var(--surface-alt);
+  border-color: var(--border-strong);
+}
+.btn:active {
+  transform: translateY(1px);
 }
 .btn-primary {
   background: var(--accent);
@@ -113,7 +120,8 @@ button {
   color: #fff;
 }
 .btn-primary:hover {
-  background: #2b2b2b;
+  background: color-mix(in srgb, var(--accent) 86%, #000);
+  border-color: color-mix(in srgb, var(--accent) 86%, #000);
 }
 .btn-sm {
   padding: 5px 10px;
@@ -222,6 +230,9 @@ table.table {
   border-collapse: collapse;
   font-size: 13px;
 }
+.table thead th {
+  background: var(--surface-alt);
+}
 .table th {
   text-align: left;
   font-size: 11px;
@@ -233,6 +244,8 @@ table.table {
   border-bottom: 1px solid var(--border);
   white-space: nowrap;
 }
+.table thead th:first-child { border-top-left-radius: var(--radius); }
+.table thead th:last-child { border-top-right-radius: var(--radius); }
 .table td {
   padding: 13px 16px;
   border-bottom: 1px solid var(--border);
@@ -320,7 +333,7 @@ table.table {
 .sidebar {
   width: var(--sidebar-w);
   border-right: 1px solid var(--border);
-  background: #fff;
+  background: var(--surface);
   display: flex;
   flex-direction: column;
   position: fixed;
@@ -328,6 +341,45 @@ table.table {
   bottom: 0;
   left: 0;
   z-index: 60;
+}
+
+/* ---------- Sidebar nav items ---------- */
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 9px 12px 9px 14px;
+  border-radius: var(--radius-sm);
+  font-size: 13.5px;
+  font-weight: 500;
+  color: var(--text-soft);
+  position: relative;
+  transition: background 0.12s ease, color 0.12s ease;
+}
+.nav-item:hover {
+  background: var(--surface-alt);
+  color: var(--text);
+}
+.nav-item.active {
+  background: var(--accent-soft);
+  color: var(--text);
+  font-weight: 600;
+}
+.nav-item.active::before {
+  content: '';
+  position: absolute;
+  left: 3px;
+  top: 9px;
+  bottom: 9px;
+  width: 3px;
+  border-radius: 3px;
+  background: var(--accent);
+}
+.nav-ico {
+  width: 16px;
+  text-align: center;
+  font-size: 14px;
+  flex-shrink: 0;
 }
 
 .sidebar-backdrop {
@@ -353,13 +405,32 @@ table.table {
 .topbar {
   height: var(--topbar-h);
   border-bottom: 1px solid var(--border);
-  background: #fff;
+  background: color-mix(in srgb, var(--surface) 82%, transparent);
+  backdrop-filter: saturate(180%) blur(8px);
+  -webkit-backdrop-filter: saturate(180%) blur(8px);
   display: flex;
   align-items: center;
   padding: 0 28px;
   position: sticky;
   top: 0;
   z-index: 20;
+}
+.topbar-title {
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--text);
+}
+.topbar-user {
+  border: 1px solid var(--border);
+  background: var(--surface);
+  border-radius: 999px;
+  padding: 4px 10px 4px 4px;
+  transition: border-color 0.12s ease, background 0.12s ease;
+}
+.topbar-user:hover {
+  background: var(--surface-alt);
+  border-color: var(--border-strong);
 }
 
 /* Card-builder tab bar — scrolls horizontally if it overflows */
@@ -378,7 +449,7 @@ table.table {
 .topbar-menu-btn {
   display: none;
   border: 1px solid var(--border-strong);
-  background: #fff;
+  background: var(--surface);
   border-radius: var(--radius-sm);
   width: 38px;
   height: 38px;

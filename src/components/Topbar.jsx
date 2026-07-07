@@ -1,11 +1,25 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext.jsx'
+
+// First path segment → page title shown in the topbar.
+const TITLES = {
+  '': 'Overview',
+  creators: 'Creators',
+  enquiries: 'Enquiries',
+  plans: 'Plans',
+  payments: 'Payments',
+  settings: 'Settings',
+}
 
 export default function Topbar({ onMenu }) {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
+  const location = useLocation()
   const [open, setOpen] = useState(false)
+
+  const segment = location.pathname.split('/')[1] || ''
+  const title = TITLES[segment] || 'Creasume'
 
   function handleLogout() {
     logout()
@@ -25,13 +39,14 @@ export default function Topbar({ onMenu }) {
         ☰
       </button>
 
+      <span className="topbar-title">{title}</span>
+
       <div style={{ flex: 1 }} />
 
       <div style={{ position: 'relative' }}>
         <button
           onClick={() => setOpen((o) => !o)}
-          className="row items-center gap-8"
-          style={{ border: 'none', background: 'none', padding: 4 }}
+          className="row items-center gap-8 topbar-user"
         >
           <span className="avatar">{initials}</span>
           <span className="text-sm fw-600 topbar-username" style={{ color: 'var(--text)' }}>
