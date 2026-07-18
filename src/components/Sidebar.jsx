@@ -6,6 +6,8 @@ const NAV = [
   { to: '/enquiries', label: 'Enquiries', icon: '✉' },
   { to: '/plans', label: 'Plans', icon: '₹' },
   { to: '/payments', label: 'Payments', icon: '◈' },
+  { to: '/benchmark', label: 'Benchmark', icon: '✦' },
+  { to: '/referrals', label: 'Refer & Earn', icon: '❖' },
   { to: '/settings', label: 'Settings', icon: '⚙' },
 ]
 

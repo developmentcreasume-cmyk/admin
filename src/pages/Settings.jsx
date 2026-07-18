@@ -178,6 +178,45 @@ export default function Settings() {
                 <input type="checkbox" checked={!!settings.maintenanceMode} onChange={(e) => setSettings({ ...settings, maintenanceMode: e.target.checked })} />
                 <span className="text-sm">Maintenance mode</span>
               </label>
+
+              {/* ---- Refer & Earn ---- */}
+              <div style={{ ...field, borderTop: '1px solid var(--border, rgba(0,0,0,0.08))', paddingTop: 16, marginTop: 4 }}>
+                <label style={labelStyle}>Refer &amp; Earn</label>
+                <label className="row items-center gap-8" style={{ cursor: 'pointer', marginBottom: 10 }}>
+                  <input
+                    type="checkbox"
+                    checked={settings.referralEnabled !== false}
+                    onChange={(e) => setSettings({ ...settings, referralEnabled: e.target.checked })}
+                  />
+                  <span className="text-sm">Referral program enabled (turn OFF to stop crediting new referrals &amp; applying coupons)</span>
+                </label>
+                <div className="text-xs muted">The referrals log lives on the Refer &amp; Earn page.</div>
+              </div>
+              <div style={field}>
+                <label style={labelStyle}>New-user discount (%) — the referred friend's coupon</label>
+                <input
+                  className="input"
+                  type="number"
+                  min="0"
+                  max="100"
+                  value={settings.referralDiscountPercent ?? 20}
+                  onChange={(e) => setSettings({ ...settings, referralDiscountPercent: e.target.value === '' ? '' : Number(e.target.value) })}
+                  style={{ maxWidth: 160 }}
+                />
+              </div>
+              <div style={field}>
+                <label style={labelStyle}>Referrer reward (%) — their coupon when the friend pays</label>
+                <input
+                  className="input"
+                  type="number"
+                  min="0"
+                  max="100"
+                  value={settings.referralCommissionPercent ?? 40}
+                  onChange={(e) => setSettings({ ...settings, referralCommissionPercent: e.target.value === '' ? '' : Number(e.target.value) })}
+                  style={{ maxWidth: 160 }}
+                />
+              </div>
+
               <div className="row items-center gap-8">
                 <button className="btn btn-primary" type="submit" disabled={savingSettings}>
                   {savingSettings ? 'Saving…' : 'Save settings'}

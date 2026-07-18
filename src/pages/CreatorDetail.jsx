@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import Badge, { FoundingBadge, SubscriptionBadge } from '../components/Badge.jsx'
+import Modal from '../components/Modal.jsx'
+import ConfirmDialog from '../components/ConfirmDialog.jsx'
 import { api } from '../services/api.js'
 import ProfileTab from './cardBuilder/ProfileTab.jsx'
 import StatsTab from './cardBuilder/StatsTab.jsx'
@@ -101,6 +103,14 @@ function adaptDetail(detail) {
     verified: creatorDoc.isVerified,
     cardActive: creatorDoc.cardActive,
     slug: creatorDoc.slug || '',
+    // Benchmark reward (Creasume Score raw points hit 500 → admin verifies → coupon).
+    benchmarkStatus: creatorDoc.benchmarkStatus || 'none',
+    benchmarkRawPoints: creatorDoc.benchmarkRawPoints || 0,
+    benchmarkHitAt: creatorDoc.benchmarkHitAt || null,
+    benchmarkCouponCode: creatorDoc.benchmarkCouponCode || null,
+    benchmarkBrandName: creatorDoc.benchmarkBrandName || null,
+    benchmarkBrandWebsite: creatorDoc.benchmarkBrandWebsite || null,
+    benchmarkDiscountPercent: creatorDoc.benchmarkDiscountPercent ?? null,
     subscription: SUB_LABEL[creatorDoc.subscriptionStatus] || 'Inactive',
     lastRefresh: creatorDoc.lastRefreshAt
       ? new Date(creatorDoc.lastRefreshAt).toLocaleString()
@@ -155,6 +165,7 @@ export default function CreatorDetail() {
   const [savingBadges, setSavingBadges] = useState(false)
   const [cardActive, setCardActive] = useState(false)
   const [slug, setSlug] = useState('')
+  const [linkCopied, setLinkCopied] = useState(false)
   const [refreshing, setRefreshing] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [savedMsg, setSavedMsg] = useState('')
@@ -338,6 +349,40 @@ export default function CreatorDetail() {
     }
   }
 
+  const [benchmarkBusy, setBenchmarkBusy] = useState(false)
+
+  // Inquiries viewer — lets the admin check this creator's actual brand inquiries
+  // (the fakeable score levers) while verifying a benchmark reward.
+  const [showInquiries, setShowInquiries] = useState(false)
+  const [inquiries, setInquiries] = useState(null) // null = not loaded yet
+  function openInquiries() {
+    setShowInquiries(true)
+    if (inquiries) return
+    api.creatorInquiries(id)
+      .then((res) => setInquiries(res.data || []))
+      .catch((err) => { flash(err.message || 'Could not load inquiries'); setInquiries([]) })
+  }
+
+  // Which benchmark action is awaiting confirmation in the card: 'approve' | 'reject' | null.
+  const [confirmAction, setConfirmAction] = useState(null)
+
+  // Approve the benchmark reward → backend grants a coupon (code + a credit that
+  // auto-applies the discount at the creator's next checkout).
+  // Reject the milestone (looks faked / not eligible) — no coupon granted.
+  async function doRejectBenchmark() {
+    setBenchmarkBusy(true)
+    try {
+      await api.rejectBenchmark(id)
+      setCreator((c) => ({ ...c, benchmarkStatus: 'rejected' }))
+      flash('Milestone rejected')
+      setConfirmAction(null)
+    } catch (err) {
+      flash(err.message || 'Reject failed')
+    } finally {
+      setBenchmarkBusy(false)
+    }
+  }
+
   if (loading) return <div className="empty">Loading creator…</div>
   if (error) {
     return (
@@ -391,14 +436,171 @@ export default function CreatorDetail() {
               👁 Preview card
             </a>
           )}
+          <button className="btn" onClick={openInquiries}>✉ View inquiries</button>
           <button className="btn" onClick={refresh} disabled={refreshing}>
             {refreshing ? 'Refreshing…' : '↻ Refresh Instagram data'}
           </button>
           <button className="btn btn-danger" onClick={deleteAccount} disabled={deleting}>
-            {deleting ? 'Deleting…' : '🗑 Delete account'}
+            {deleting ? 'Deleting…' : '✕ Delete account'}
           </button>
         </div>
       </div>
+
+      {/* Benchmark reward — shows only once the creator has hit the 500 benchmark */}
+      {creator.benchmarkStatus && creator.benchmarkStatus !== 'none' && (
+        <div
+          className="card card-pad"
+          style={{
+            marginBottom: 22,
+            border: '1px solid',
+            borderColor:
+              creator.benchmarkStatus === 'pending_review' ? '#e0a43b'
+              : creator.benchmarkStatus === 'rewarded' ? '#22c55e' : 'var(--border)',
+            background:
+              creator.benchmarkStatus === 'pending_review' ? 'rgba(224,164,59,0.08)'
+              : creator.benchmarkStatus === 'rewarded' ? 'rgba(34,197,94,0.08)' : 'transparent',
+          }}
+        >
+          <div className="row items-center justify-between flex-wrap gap-12">
+            <div>
+              <div className="row items-center gap-8">
+                <strong style={{ fontSize: 15 }}>⚡ Benchmark reward</strong>
+                <Badge tone={
+                  creator.benchmarkStatus === 'pending_review' ? 'amber'
+                  : creator.benchmarkStatus === 'rewarded' ? 'green' : 'neutral'
+                }>
+                  {creator.benchmarkStatus === 'pending_review' ? 'Pending review'
+                    : creator.benchmarkStatus === 'rewarded' ? 'Rewarded' : 'Rejected'}
+                </Badge>
+              </div>
+              <div className="text-sm muted" style={{ marginTop: 6 }}>
+                {creator.benchmarkStatus === 'pending_review' && (
+                  <>Hit <strong>{creator.benchmarkRawPoints}/500</strong> raw points. <span style={{ color: '#c98a1a' }}>Verify their brand inquiries &amp; accepted deals (Collaboration tab + Enquiries page) are genuine before rewarding.</span></>
+                )}
+                {creator.benchmarkStatus === 'rewarded' && (
+                  <>{creator.benchmarkBrandName || 'Partner brand'} coupon: <strong style={{ letterSpacing: 0.5 }}>{creator.benchmarkCouponCode || '—'}</strong>{creator.benchmarkDiscountPercent ? ` (${creator.benchmarkDiscountPercent}% off)` : ''} — redeemable on the brand website.</>
+                )}
+                {creator.benchmarkStatus === 'rejected' && <>Milestone rejected — no coupon granted.</>}
+              </div>
+            </div>
+            {creator.benchmarkStatus === 'pending_review' && (
+              <div className="row items-center gap-8">
+                <button className="btn btn-sm" onClick={openInquiries}>Review inquiries</button>
+                <button className="btn btn-sm" onClick={() => setConfirmAction('reject')} disabled={benchmarkBusy}>Reject</button>
+                <button className="btn btn-sm btn-primary" onClick={() => navigate('/benchmark')} disabled={benchmarkBusy}>
+                  Add partner coupon
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Inquiries viewer — this creator's brand inquiries, for fraud-checking. */}
+      <Modal
+        open={showInquiries}
+        title={`Inquiries — ${creator.name}`}
+        onClose={() => setShowInquiries(false)}
+        maxWidth={600}
+      >
+        {inquiries === null ? (
+          <div className="empty">Loading inquiries…</div>
+        ) : inquiries.length === 0 ? (
+          <div className="empty">No inquiries yet.</div>
+        ) : (
+          <>
+            {(() => {
+            // Fraud signals: (1) how concentrated inquiries are on one sender,
+            // (2) how high the acceptance rate is. Genuine brand demand comes from
+            // MANY different emails and is NOT ~all accepted; self-sent fakes are
+            // dominated by one/few addresses and accepted almost every time.
+            const total = inquiries.length
+            const accepted = inquiries.filter((q) => q.status === 'actioned').length
+            const acceptRate = total ? Math.round((accepted / total) * 100) : 0
+
+            const emailCounts = {}
+            inquiries.forEach((q) => {
+              const e = (q.email || '').toLowerCase().trim()
+              if (e) emailCounts[e] = (emailCounts[e] || 0) + 1
+            })
+            const uniq = Object.keys(emailCounts).length
+            const topCount = Object.values(emailCounts).reduce((m, n) => Math.max(m, n), 0)
+            const topShare = total ? Math.round((topCount / total) * 100) : 0
+
+            const concentrated = total >= 3 && topShare >= 40   // one sender dominates
+            const highAccept = total >= 3 && acceptRate >= 80     // implausibly high closes
+            const suspicious = concentrated || highAccept
+
+            return (
+              <div style={{ marginBottom: 14, paddingBottom: 14, borderBottom: '1px solid var(--border)' }}>
+                <div className="row items-center gap-8 flex-wrap">
+                  <Badge tone="neutral">{total} total</Badge>
+                  <Badge tone={highAccept ? 'red' : 'green'}>{accepted} accepted · {acceptRate}%</Badge>
+                  <Badge tone={concentrated ? 'red' : 'blue'}>{uniq} {uniq === 1 ? 'sender' : 'senders'}</Badge>
+                  <Badge tone={concentrated ? 'red' : 'neutral'}>top sender {topShare}%</Badge>
+                </div>
+                {suspicious ? (
+                  <div
+                    className="text-sm"
+                    style={{ marginTop: 10, padding: '8px 12px', borderRadius: 8, color: '#b42222', background: 'rgba(180,34,34,0.08)', border: '1px solid rgba(180,34,34,0.25)' }}
+                  >
+                    ⚠ Looks faked —{' '}
+                    {concentrated && `${topShare}% of inquiries come from a single email`}
+                    {concentrated && highAccept && '; '}
+                    {highAccept && `${acceptRate}% were accepted`}
+                    . Real brand demand comes from many different senders and isn't nearly all accepted. Consider rejecting.
+                  </div>
+                ) : (
+                  <div className="text-xs faint" style={{ marginTop: 8 }}>
+                    Spread across {uniq} senders with a {acceptRate}% accept rate — looks organic.
+                  </div>
+                )}
+              </div>
+            )
+          })()}
+
+            <div className="col gap-10">
+              {inquiries.map((q) => (
+                <div
+                  key={q._id}
+                  className="card-pad"
+                  style={{ background: 'var(--surface-alt)', borderRadius: 10, border: '1px solid var(--border)' }}
+                >
+                  <div className="row items-start justify-between gap-8">
+                    <div style={{ minWidth: 0 }}>
+                      <div className="fw-600">{q.brandName || 'Unnamed brand'}</div>
+                      <div className="text-xs muted" style={{ marginTop: 2, wordBreak: 'break-word' }}>
+                        {q.email || 'no email'}
+                      </div>
+                    </div>
+                    <Badge tone={q.status === 'actioned' ? 'green' : q.status === 'reviewed' ? 'amber' : 'blue'}>
+                      {(q.status || 'pending').replace(/^\w/, (c) => c.toUpperCase())}
+                    </Badge>
+                  </div>
+                  {q.brief && (
+                    <div className="text-sm" style={{ marginTop: 8, color: 'var(--text)' }}>{q.brief}</div>
+                  )}
+                  <div className="text-xs faint" style={{ marginTop: 8 }}>
+                    {q.campaignType || 'general'} · {new Date(q.createdAt).toLocaleDateString()}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </>
+        )}
+      </Modal>
+
+      {/* Benchmark approve/reject confirmation card (replaces window.confirm) */}
+      <ConfirmDialog
+        open={confirmAction === 'reject'}
+        title="Reject this milestone?"
+        message={"No coupon will be granted. Use this if the inquiries or accepted deals look faked."}
+        confirmLabel="Reject milestone"
+        tone="danger"
+        busy={benchmarkBusy}
+        onConfirm={doRejectBenchmark}
+        onClose={() => setConfirmAction(null)}
+      />
 
       {/* Management controls */}
       <div className="card card-pad row flex-wrap items-end" style={{ marginBottom: 22, columnGap: 20, rowGap: 18 }}>
@@ -408,11 +610,37 @@ export default function CreatorDetail() {
         <Divider />
         <ControlToggle label="Public Influence Card" on={cardActive} onText="Active" offText="Inactive" onToggle={() => setCardActive((v) => !v)} />
         <Divider />
-        <div style={{ minWidth: 220 }}>
-          <label className="text-xs fw-600 muted" style={{ display: 'block', marginBottom: 8 }}>Public URL slug</label>
+        <div style={{ minWidth: 240 }}>
+          <label className="text-xs fw-600 muted" style={{ display: 'block', marginBottom: 8 }}>Card link</label>
+          {creator.publicId ? (
+            (() => {
+              // The REAL shareable card URL (cards open by publicId only). The
+              // "slug" below is just an optional vanity handle, not the live link.
+              const cardUrl = creator.username
+                ? `${PUBLIC_SITE}/${encodeURIComponent(creator.username)}/${creator.publicId}`
+                : `${PUBLIC_SITE}/${creator.publicId}`
+              const copy = () => {
+                navigator.clipboard?.writeText(cardUrl).then(() => {
+                  setLinkCopied(true)
+                  setTimeout(() => setLinkCopied(false), 1500)
+                }).catch(() => {})
+              }
+              return (
+                <div className="row items-center gap-8">
+                  <a href={cardUrl} target="_blank" rel="noopener noreferrer" className="text-sm" style={{ wordBreak: 'break-all' }}>
+                    {cardUrl.replace(/^https?:\/\//, '')}
+                  </a>
+                  <button type="button" className="btn btn-sm" onClick={copy}>{linkCopied ? 'Copied!' : 'Copy'}</button>
+                </div>
+              )
+            })()
+          ) : (
+            <span className="text-sm faint">No card link yet (creator hasn’t finished setup).</span>
+          )}
+          <label className="text-xs fw-600 muted" style={{ display: 'block', margin: '14px 0 8px' }}>Vanity slug <span className="faint">(optional)</span></label>
           <div className="row items-center gap-8">
             <span className="text-sm faint">creasume.com/</span>
-            <input className="input" style={{ maxWidth: 160 }} value={slug} onChange={(e) => setSlug(e.target.value)} />
+            <input className="input" style={{ maxWidth: 160 }} value={slug} onChange={(e) => setSlug(e.target.value)} placeholder="optional" />
           </div>
         </div>
         <div className="row items-center gap-8" style={{ marginLeft: 'auto' }}>

@@ -95,6 +95,13 @@ export const api = {
   savePackages: (id, packages) => put(`/admin/creators/${id}/packages`, { packages }),
   publishCard: (id, draft = false) => post(`/admin/creators/${id}/publish`, { draft }),
 
+  // A single creator's brand inquiries (for reviewing / fraud-checking).
+  creatorInquiries: (id) => get(`/admin/creators/${id}/inquiries`),
+  // Benchmark reward — list all who hit 500; approve grants the coupon, reject dismisses.
+  benchmarkList: (params = {}) => get(`/admin/creators/benchmark/list${qs(params)}`),
+  approveBenchmark: (id, reward) => post(`/admin/creators/${id}/benchmark/approve`, reward),
+  rejectBenchmark: (id) => post(`/admin/creators/${id}/benchmark/reject`),
+
   // Enquiries
   enquiries: (params = {}) => get(`/admin/enquiries${qs(params)}`),
   setEnquiryStatus: (id, status) => patch(`/admin/enquiries/${id}/status`, { status }),
@@ -115,6 +122,9 @@ export const api = {
   // Site settings
   getSettings: () => get('/admin/settings'),
   updateSettings: (body) => put('/admin/settings', body),
+
+  // Refer & Earn overview (program state, totals, recent referral events)
+  referrals: (limit = 100) => get(`/admin/referrals?limit=${limit}`),
 }
 
 // Build a query string from a params object, skipping empty values.
