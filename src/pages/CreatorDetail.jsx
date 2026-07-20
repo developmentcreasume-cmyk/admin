@@ -366,8 +366,8 @@ export default function CreatorDetail() {
   // Which benchmark action is awaiting confirmation in the card: 'approve' | 'reject' | null.
   const [confirmAction, setConfirmAction] = useState(null)
 
-  // Approve the benchmark reward → backend grants a coupon (code + a credit that
-  // auto-applies the discount at the creator's next checkout).
+  // Partner coupon approval is completed in the Benchmark tab, where the admin
+  // can enter the brand, code, discount and redemption website.
   // Reject the milestone (looks faked / not eligible) — no coupon granted.
   async function doRejectBenchmark() {
     setBenchmarkBusy(true)
@@ -590,7 +590,7 @@ export default function CreatorDetail() {
         )}
       </Modal>
 
-      {/* Benchmark approve/reject confirmation card (replaces window.confirm) */}
+      {/* Benchmark rejection confirmation card. */}
       <ConfirmDialog
         open={confirmAction === 'reject'}
         title="Reject this milestone?"

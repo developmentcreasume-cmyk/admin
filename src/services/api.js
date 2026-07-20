@@ -97,10 +97,17 @@ export const api = {
 
   // A single creator's brand inquiries (for reviewing / fraud-checking).
   creatorInquiries: (id) => get(`/admin/creators/${id}/inquiries`),
-  // Benchmark reward — list all who hit 500; approve grants the coupon, reject dismisses.
+  // Benchmark reward — approval assigns a manually entered partner-brand coupon.
   benchmarkList: (params = {}) => get(`/admin/creators/benchmark/list${qs(params)}`),
   approveBenchmark: (id, reward) => post(`/admin/creators/${id}/benchmark/approve`, reward),
   rejectBenchmark: (id) => post(`/admin/creators/${id}/benchmark/reject`),
+
+  // Landing page content — testimonials ("Hear from Our Influencers") and the
+  // brand logos ("Brands that Trust Creasume") shown on the public site.
+  landingItems: (params = {}) => get(`/admin/landing${qs(params)}`),
+  addLandingItem: (body) => post('/admin/landing', body),
+  updateLandingItem: (id, body) => patch(`/admin/landing/${id}`, body),
+  deleteLandingItem: (id) => request(`/admin/landing/${id}`, { method: 'DELETE' }),
 
   // Enquiries
   enquiries: (params = {}) => get(`/admin/enquiries${qs(params)}`),

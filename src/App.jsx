@@ -10,6 +10,7 @@ import Plans from './pages/Plans.jsx'
 import Payments from './pages/Payments.jsx'
 import Benchmark from './pages/Benchmark.jsx'
 import Referrals from './pages/Referrals.jsx'
+import Landing from './pages/Landing.jsx'
 import Settings from './pages/Settings.jsx'
 
 export default function App() {
@@ -32,6 +33,7 @@ export default function App() {
         <Route path="payments" element={<Payments />} />
         <Route path="benchmark" element={<Benchmark />} />
         <Route path="referrals" element={<Referrals />} />
+        <Route path="landing" element={<Landing />} />
         <Route path="settings" element={<Settings />} />
       </Route>
 

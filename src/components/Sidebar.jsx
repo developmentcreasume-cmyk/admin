@@ -8,6 +8,7 @@ const NAV = [
   { to: '/payments', label: 'Payments', icon: '◈' },
   { to: '/benchmark', label: 'Benchmark', icon: '✦' },
   { to: '/referrals', label: 'Refer & Earn', icon: '❖' },
+  { to: '/landing', label: 'Landing page', icon: '▤' },
   { to: '/settings', label: 'Settings', icon: '⚙' },
 ]
 
