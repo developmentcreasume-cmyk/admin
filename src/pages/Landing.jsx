@@ -246,7 +246,7 @@ export default function Landing() {
             className="input"
             value={form.name}
             onChange={(e) => setForm({ ...form, name: e.target.value })}
-            placeholder={isBrand ? 'e.g. Spotify' : 'e.g. Hetvi Shah'}
+            placeholder={isBrand ? 'e.g. Spotify' : 'e.g. Priya Sharma'}
             autoFocus
           />
         </div>
@@ -259,7 +259,7 @@ export default function Landing() {
                 className="input"
                 value={form.handle}
                 onChange={(e) => setForm({ ...form, handle: e.target.value })}
-                placeholder="e.g. @hetvi · Fashion creator"
+                placeholder="e.g. @priya · Fashion creator"
               />
             </div>
             <div className="field">
