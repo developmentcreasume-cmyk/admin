@@ -329,14 +329,16 @@ export default function Benchmark() {
           <input className="input" type="url" value={reward.brandWebsite} onChange={(e) => setReward({ ...reward, brandWebsite: e.target.value })} placeholder="https://brand.com" />
         </div>
       </Modal>
+      {/* `confirm.row` is null while "+ Give brand coupon" is still sitting on the
+          creator picker, so never reach into it unguarded here. */}
       <ConfirmDialog
         open={confirm?.action === 'reject'}
         title="Reject this milestone?"
         message="No coupon will be granted. Use this if the inquiries or accepted deals look faked."
         confirmLabel="Reject milestone"
         tone="danger"
-        busy={!!confirm && busyId === confirm.row._id}
-        onConfirm={() => doReject(confirm.row)}
+        busy={!!confirm?.row && busyId === confirm.row._id}
+        onConfirm={() => confirm?.row && doReject(confirm.row)}
         onClose={() => setConfirm(null)}
       />
     </div>

@@ -10,11 +10,11 @@ import { api } from '../services/api.js'
 // Both were hardcoded placeholders in the front-end before this page existed.
 // An empty list here makes the landing page fall back to its skeleton cards.
 const TABS = [
-  { key: 'testimonial', label: 'Creator testimonials', blurb: 'Shown in the "Hear from Our Influencers" marquee.' },
+  { key: 'testimonial', label: 'Founding creators', blurb: 'Enter only an Instagram username. Profile data and score are fetched automatically.' },
   { key: 'brand', label: 'Brands', blurb: 'Shown in the "Brands that Trust Creasume" marquee.' },
 ]
 
-const emptyForm = { name: '', handle: '', quote: '', imageUrl: '', website: '', sortOrder: 0, isActive: true }
+const emptyForm = { name: '', username: '', handle: '', quote: '', imageUrl: '', website: '', sortOrder: 0, isActive: true }
 
 export default function Landing() {
   const [kind, setKind] = useState('testimonial')
@@ -23,6 +23,11 @@ export default function Landing() {
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
   const [uploading, setUploading] = useState(false)
+
+  // Creator search dropdown
+  const [creatorSearch, setCreatorSearch] = useState('')
+  const [creatorResults, setCreatorResults] = useState([])
+  const [creatorDropOpen, setCreatorDropOpen] = useState(false)
 
   // Open editor: { id } for edit, { id: null } for add. Null = closed.
   const [editing, setEditing] = useState(null)
@@ -45,15 +50,21 @@ export default function Landing() {
 
   function openAdd() {
     setError('')
-    // Append to the end of the current list by default.
+    setCreatorSearch('')
+    setCreatorResults([])
+    setCreatorDropOpen(false)
     setForm({ ...emptyForm, sortOrder: items.length })
     setEditing({ id: null })
   }
 
   function openEdit(item) {
     setError('')
+    setCreatorSearch(item.username || String(item.handle || '').replace(/^@+/, ''))
+    setCreatorResults([])
+    setCreatorDropOpen(false)
     setForm({
       name: item.name || '',
+      username: item.username || String(item.handle || '').replace(/^@+/, ''),
       handle: item.handle || '',
       quote: item.quote || '',
       imageUrl: item.imageUrl || '',
@@ -78,19 +89,42 @@ export default function Landing() {
     }
   }
 
+  async function searchCreators(q) {
+    setCreatorSearch(q)
+    if (!q.trim()) { setCreatorResults([]); setCreatorDropOpen(false); return }
+    try {
+      const res = await api.creators({ search: q, limit: 10 })
+      setCreatorResults(res.creators || res.items || [])
+      setCreatorDropOpen(true)
+    } catch { setCreatorResults([]) }
+  }
+
+  function pickCreator(c) {
+    const handle = c.instagramHandle || c.username || c.handle || ''
+    setCreatorSearch(handle)
+    setForm((f) => ({ ...f, username: handle }))
+    setCreatorDropOpen(false)
+  }
+
   async function save() {
-    if (!form.name.trim()) {
-      setError('Name is required.')
+    if (isBrand && !form.name.trim()) {
+      setError('Brand name is required.')
       return
     }
-    if (!isBrand && !form.quote.trim()) {
-      setError('Quote is required for a testimonial.')
+    if (!isBrand && !form.username.trim()) {
+      setError('Select a creator.')
       return
     }
     setBusy(true)
     setError('')
     try {
-      const body = { ...form, sortOrder: Number(form.sortOrder) || 0 }
+      const body = isBrand
+        ? { ...form, sortOrder: Number(form.sortOrder) || 0 }
+        : {
+            username: form.username.trim().replace(/^@+/, '').toLowerCase(),
+            sortOrder: Number(form.sortOrder) || 0,
+            isActive: form.isActive,
+          }
       if (editing.id) await api.updateLandingItem(editing.id, body)
       else await api.addLandingItem({ ...body, kind })
       setEditing(null)
@@ -133,7 +167,7 @@ export default function Landing() {
           <p>Creators and brands shown on the public landing page. Leave a list empty to keep the placeholder cards.</p>
         </div>
         <button className="btn btn-primary" onClick={openAdd}>
-          + Add {isBrand ? 'brand' : 'testimonial'}
+          + Add {isBrand ? 'brand' : 'creator'}
         </button>
       </div>
 
@@ -156,9 +190,8 @@ export default function Landing() {
         <table className="table">
           <thead>
             <tr>
-              <th style={{ width: 60 }}>{isBrand ? 'Logo' : 'Photo'}</th>
+              {isBrand && <th style={{ width: 60 }}>Logo</th>}
               <th>{isBrand ? 'Brand' : 'Creator'}</th>
-              {!isBrand && <th>Quote</th>}
               {isBrand && <th>Website</th>}
               <th style={{ width: 70 }}>Order</th>
               <th style={{ width: 90 }}>Status</th>
@@ -168,7 +201,7 @@ export default function Landing() {
           <tbody>
             {items.map((it) => (
               <tr key={it._id}>
-                <td>
+                {isBrand && <td>
                   {it.imageUrl ? (
                     <img
                       src={it.imageUrl}
@@ -178,16 +211,12 @@ export default function Landing() {
                   ) : (
                     <span className="text-xs faint">—</span>
                   )}
-                </td>
+                </td>}
                 <td>
-                  <div className="fw-600">{it.name}</div>
-                  {!isBrand && it.handle && <div className="text-xs muted">{it.handle}</div>}
+                  <div className="fw-600">
+                    {isBrand ? it.name : `@${it.username || String(it.handle || '').replace(/^@+/, '')}`}
+                  </div>
                 </td>
-                {!isBrand && (
-                  <td className="text-xs muted" style={{ maxWidth: 380 }}>
-                    {(it.quote || '').length > 120 ? `${it.quote.slice(0, 120)}…` : it.quote}
-                  </td>
-                )}
                 {isBrand && (
                   <td className="text-xs muted">
                     {it.website ? <a href={it.website} target="_blank" rel="noreferrer">{it.website}</a> : '—'}
@@ -212,15 +241,15 @@ export default function Landing() {
             ))}
             {!loading && items.length === 0 && (
               <tr>
-                <td colSpan={isBrand ? 6 : 7}>
+                <td colSpan={isBrand ? 6 : 5}>
                   <div className="empty">
-                    No {isBrand ? 'brands' : 'testimonials'} yet — the landing page is showing placeholder cards.
+                    No {isBrand ? 'brands' : 'founding creators'} yet — the landing page is showing placeholder cards.
                   </div>
                 </td>
               </tr>
             )}
             {loading && (
-              <tr><td colSpan={isBrand ? 6 : 7}><div className="empty">Loading…</div></td></tr>
+              <tr><td colSpan={isBrand ? 6 : 5}><div className="empty">Loading…</div></td></tr>
             )}
           </tbody>
         </table>
@@ -228,7 +257,7 @@ export default function Landing() {
 
       <Modal
         open={!!editing}
-        title={`${editing?.id ? 'Edit' : 'Add'} ${isBrand ? 'brand' : 'testimonial'}`}
+        title={`${editing?.id ? 'Edit' : 'Add'} ${isBrand ? 'brand' : 'founding creator'}`}
         onClose={() => { if (!busy) setEditing(null) }}
         maxWidth={520}
         footer={
@@ -240,7 +269,7 @@ export default function Landing() {
           </>
         }
       >
-        <div className="field">
+        {isBrand && <div className="field">
           <label>{isBrand ? 'Brand name' : 'Creator name'}</label>
           <input
             className="input"
@@ -249,30 +278,49 @@ export default function Landing() {
             placeholder={isBrand ? 'e.g. Spotify' : 'e.g. Priya Sharma'}
             autoFocus
           />
-        </div>
+        </div>}
 
         {!isBrand && (
-          <>
-            <div className="field">
-              <label>Handle / role <span className="faint">(optional)</span></label>
-              <input
-                className="input"
-                value={form.handle}
-                onChange={(e) => setForm({ ...form, handle: e.target.value })}
-                placeholder="e.g. @priya · Fashion creator"
-              />
-            </div>
-            <div className="field">
-              <label>Quote</label>
-              <textarea
-                className="input"
-                rows={4}
-                value={form.quote}
-                onChange={(e) => setForm({ ...form, quote: e.target.value })}
-                placeholder="What did they say about Creasume?"
-              />
-            </div>
-          </>
+          <div className="field" style={{ position: 'relative' }}>
+            <label>Creator</label>
+            <input
+              className="input"
+              value={creatorSearch}
+              onChange={(e) => searchCreators(e.target.value)}
+              onFocus={() => creatorResults.length && setCreatorDropOpen(true)}
+              placeholder="Type a creator name…"
+              autoFocus
+              autoComplete="off"
+            />
+            {creatorDropOpen && creatorResults.length > 0 && (
+              <div style={{
+                position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 50,
+                background: 'var(--surface, #fff)', border: '1px solid var(--border, #e2e8f0)',
+                borderRadius: 8, boxShadow: '0 4px 16px rgba(0,0,0,.12)', maxHeight: 220, overflowY: 'auto'
+              }}>
+                {creatorResults.map((c) => {
+                  const handle = c.instagramHandle || c.username || c.handle || ''
+                  const name = c.name || c.fullName || handle
+                  return (
+                    <div
+                      key={c._id}
+                      onMouseDown={() => pickCreator(c)}
+                      style={{ padding: '8px 12px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10 }}
+                      onMouseEnter={(e) => e.currentTarget.style.background = 'var(--hover, #f1f5f9)'}
+                      onMouseLeave={(e) => e.currentTarget.style.background = ''}
+                    >
+                      {c.profilePicUrl && <img src={c.profilePicUrl} alt="" style={{ width: 28, height: 28, borderRadius: '50%', objectFit: 'cover' }} />}
+                      <div>
+                        <div style={{ fontWeight: 600, fontSize: 13 }}>{name}</div>
+                        {handle && <div style={{ fontSize: 11, opacity: .6 }}>@{handle}</div>}
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+            <span className="text-xs muted">Name, profile photo, followers and score are fetched automatically.</span>
+          </div>
         )}
 
         {isBrand && (
@@ -287,7 +335,7 @@ export default function Landing() {
           </div>
         )}
 
-        <div className="field">
+        {isBrand && <div className="field">
           <label>{isBrand ? 'Logo' : 'Photo'}</label>
           <div className="row items-center gap-8">
             {form.imageUrl && (
@@ -307,35 +355,14 @@ export default function Landing() {
             onChange={(e) => setForm({ ...form, imageUrl: e.target.value })}
             placeholder="…or paste an image URL"
           />
-        </div>
+        </div>}
 
-        <div className="row gap-8" style={{ alignItems: 'flex-start' }}>
-          <div className="field" style={{ width: 140 }}>
-            <label>Order</label>
-            <input
-              className="input"
-              type="number"
-              value={form.sortOrder}
-              onChange={(e) => setForm({ ...form, sortOrder: e.target.value })}
-            />
-          </div>
-          <div className="field mb-0" style={{ flex: 1 }}>
-            <label>Visibility</label>
-            <label className="row items-center gap-8" style={{ cursor: 'pointer' }}>
-              <input
-                type="checkbox"
-                checked={form.isActive}
-                onChange={(e) => setForm({ ...form, isActive: e.target.checked })}
-              />
-              <span className="text-sm">Show on the landing page</span>
-            </label>
-          </div>
-        </div>
+
       </Modal>
 
       <ConfirmDialog
         open={!!confirmDelete}
-        title={`Delete "${confirmDelete?.name || ''}"?`}
+        title={`Delete "${confirmDelete?.name || confirmDelete?.username || ''}"?`}
         message="This removes it from the landing page permanently. Use Hide instead if you may want it back."
         confirmLabel="Delete"
         tone="danger"
