@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import SearchBar from '../components/SearchBar.jsx'
-import Badge, { FoundingBadge, SubscriptionBadge } from '../components/Badge.jsx'
+import Badge, { FoundingBadge, SubscriptionBadge, BroughtByBadge } from '../components/Badge.jsx'
 import Modal from '../components/Modal.jsx'
 import { api } from '../services/api.js'
 
@@ -131,7 +131,15 @@ export default function Creators() {
                 <td>
                   <Badge tone="neutral">{(r.planTier || 'free').replace(/^\w/, (c) => c.toUpperCase())}</Badge>
                 </td>
-                <td>{r.isFoundingCreator ? <FoundingBadge /> : <span className="faint">—</span>}</td>
+                <td>
+                  {r.broughtByBrand?.name ? (
+                    <BroughtByBadge name={r.broughtByBrand.name} color={r.broughtByBrand.color} />
+                  ) : r.isFoundingCreator ? (
+                    <FoundingBadge />
+                  ) : (
+                    <span className="faint">—</span>
+                  )}
+                </td>
                 <td>{r.cardActive ? <Badge tone="green">Live</Badge> : <Badge tone="neutral">Off</Badge>}</td>
                 <td>
                   <SubscriptionBadge status={SUB_LABEL[r.subscriptionStatus] || 'Inactive'} />

@@ -676,7 +676,11 @@ export default function CreatorDetail() {
             </label>
             {(brandLogoDataUrl || (brandHasLogo && creator.publicId)) && (
               <img
-                src={brandLogoDataUrl || `${API_BASE}/public/brand-logo/${creator.publicId}`}
+                // `?v=color` busts the browser's cache on this fixed URL — the
+                // route is served with a 1hr Cache-Control, so without a
+                // changing query param a newly-changed logo would keep
+                // showing the OLD cached image after a re-upload.
+                src={brandLogoDataUrl || `${API_BASE}/public/brand-logo/${creator.publicId}?v=${encodeURIComponent(brandColor || '')}`}
                 alt="Brand logo"
                 style={{ width: 28, height: 28, objectFit: 'contain', borderRadius: 6, border: '1px solid var(--border)' }}
               />
