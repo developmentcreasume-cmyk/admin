@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import Badge from '../components/Badge.jsx'
 import ConfirmDialog from '../components/ConfirmDialog.jsx'
 import Modal from '../components/Modal.jsx'
-import { api } from '../services/api.js'
+import { api, API_BASE } from '../services/api.js'
 
 // Content for the two admin-managed marquees on the public landing page:
 //   • Testimonials → "Hear from Our Influencers" (creator photo, name, quote)
@@ -10,11 +10,20 @@ import { api } from '../services/api.js'
 // Both were hardcoded placeholders in the front-end before this page existed.
 // An empty list here makes the landing page fall back to its skeleton cards.
 const TABS = [
-  { key: 'testimonial', label: 'Founding creators', blurb: 'Enter only an Instagram username. Profile data and score are fetched automatically.' },
+  { key: 'testimonial', label: 'Creators', blurb: 'Choose any creator. Profile data, score, and founding status are fetched automatically.' },
   { key: 'brand', label: 'Brands', blurb: 'Shown in the "Brands that Trust Creasume" marquee.' },
 ]
 
 const emptyForm = { name: '', username: '', handle: '', quote: '', imageUrl: '', website: '', sortOrder: 0, isActive: true }
+
+const MAX_QUOTE_WORDS = 25
+
+// Caps pasted/typed text at MAX_QUOTE_WORDS words — keeps testimonials short
+// enough to fit the fixed-height card on the landing page.
+function limitWords(text, max) {
+  const words = text.split(/\s+/).filter(Boolean)
+  return words.length <= max ? text : words.slice(0, max).join(' ')
+}
 
 export default function Landing() {
   const [kind, setKind] = useState('testimonial')
@@ -28,6 +37,8 @@ export default function Landing() {
   const [creatorSearch, setCreatorSearch] = useState('')
   const [creatorResults, setCreatorResults] = useState([])
   const [creatorDropOpen, setCreatorDropOpen] = useState(false)
+  const [creatorSearching, setCreatorSearching] = useState(false)
+  const [creatorError, setCreatorError] = useState('')
 
   // Open editor: { id } for edit, { id: null } for add. Null = closed.
   const [editing, setEditing] = useState(null)
@@ -53,6 +64,8 @@ export default function Landing() {
     setCreatorSearch('')
     setCreatorResults([])
     setCreatorDropOpen(false)
+    setCreatorSearching(false)
+    setCreatorError('')
     setForm({ ...emptyForm, sortOrder: items.length })
     setEditing({ id: null })
   }
@@ -62,6 +75,8 @@ export default function Landing() {
     setCreatorSearch(item.username || String(item.handle || '').replace(/^@+/, ''))
     setCreatorResults([])
     setCreatorDropOpen(false)
+    setCreatorSearching(false)
+    setCreatorError('')
     setForm({
       name: item.name || '',
       username: item.username || String(item.handle || '').replace(/^@+/, ''),
@@ -91,12 +106,19 @@ export default function Landing() {
 
   async function searchCreators(q) {
     setCreatorSearch(q)
-    if (!q.trim()) { setCreatorResults([]); setCreatorDropOpen(false); return }
+    setCreatorError('')
+    if (!q.trim()) { setCreatorResults([]); setCreatorDropOpen(false); setCreatorSearching(false); return }
+    setCreatorDropOpen(true)
+    setCreatorSearching(true)
     try {
       const res = await api.creators({ search: q, limit: 10 })
-      setCreatorResults(res.creators || res.items || [])
-      setCreatorDropOpen(true)
-    } catch { setCreatorResults([]) }
+      setCreatorResults(res.data || res.creators || res.items || [])
+    } catch (e) {
+      setCreatorResults([])
+      setCreatorError(e.message || 'Could not load creators.')
+    } finally {
+      setCreatorSearching(false)
+    }
   }
 
   function pickCreator(c) {
@@ -122,6 +144,7 @@ export default function Landing() {
         ? { ...form, sortOrder: Number(form.sortOrder) || 0 }
         : {
             username: form.username.trim().replace(/^@+/, '').toLowerCase(),
+            quote: form.quote.trim(),
             sortOrder: Number(form.sortOrder) || 0,
             isActive: form.isActive,
           }
@@ -193,13 +216,29 @@ export default function Landing() {
               {isBrand && <th style={{ width: 60 }}>Logo</th>}
               <th>{isBrand ? 'Brand' : 'Creator'}</th>
               {isBrand && <th>Website</th>}
-              <th style={{ width: 70 }}>Order</th>
               <th style={{ width: 90 }}>Status</th>
               <th style={{ textAlign: 'right' }}>Actions</th>
             </tr>
           </thead>
           <tbody>
-            {items.map((it) => (
+            {loading && Array.from({ length: 4 }).map((_, i) => (
+              <tr key={`sk-${i}`} className="skeleton-row">
+                {isBrand && (
+                  <td><span className="skeleton skeleton-circle" style={{ width: 36, height: 36, borderRadius: 8 }} /></td>
+                )}
+                <td><span className="skeleton skeleton-text" style={{ width: isBrand ? 140 : 160 }} /></td>
+                {isBrand && <td><span className="skeleton skeleton-text" style={{ width: 120 }} /></td>}
+                <td><span className="skeleton skeleton-text" style={{ width: 46, height: 20, borderRadius: 999 }} /></td>
+                <td style={{ textAlign: 'right' }}>
+                  <div className="row items-center gap-8" style={{ justifyContent: 'flex-end' }}>
+                    <span className="skeleton" style={{ width: 48, height: 28, borderRadius: 8 }} />
+                    <span className="skeleton" style={{ width: 44, height: 28, borderRadius: 8 }} />
+                    <span className="skeleton" style={{ width: 56, height: 28, borderRadius: 8 }} />
+                  </div>
+                </td>
+              </tr>
+            ))}
+            {!loading && items.map((it) => (
               <tr key={it._id}>
                 {isBrand && <td>
                   {it.imageUrl ? (
@@ -222,7 +261,6 @@ export default function Landing() {
                     {it.website ? <a href={it.website} target="_blank" rel="noreferrer">{it.website}</a> : '—'}
                   </td>
                 )}
-                <td>{it.sortOrder ?? 0}</td>
                 <td>
                   <Badge tone={it.isActive !== false ? 'green' : 'neutral'}>
                     {it.isActive !== false ? 'Live' : 'Hidden'}
@@ -241,15 +279,12 @@ export default function Landing() {
             ))}
             {!loading && items.length === 0 && (
               <tr>
-                <td colSpan={isBrand ? 6 : 5}>
+                <td colSpan={isBrand ? 5 : 4}>
                   <div className="empty">
-                    No {isBrand ? 'brands' : 'founding creators'} yet — the landing page is showing placeholder cards.
+                    No {isBrand ? 'brands' : 'creators'} yet — the landing page is showing placeholder cards.
                   </div>
                 </td>
               </tr>
-            )}
-            {loading && (
-              <tr><td colSpan={isBrand ? 6 : 5}><div className="empty">Loading…</div></td></tr>
             )}
           </tbody>
         </table>
@@ -257,7 +292,7 @@ export default function Landing() {
 
       <Modal
         open={!!editing}
-        title={`${editing?.id ? 'Edit' : 'Add'} ${isBrand ? 'brand' : 'founding creator'}`}
+        title={`${editing?.id ? 'Edit' : 'Add'} ${isBrand ? 'brand' : 'creator'}`}
         onClose={() => { if (!busy) setEditing(null) }}
         maxWidth={520}
         footer={
@@ -281,35 +316,72 @@ export default function Landing() {
         </div>}
 
         {!isBrand && (
-          <div className="field" style={{ position: 'relative' }}>
+          <div className="field">
             <label>Creator</label>
             <input
               className="input"
               value={creatorSearch}
               onChange={(e) => searchCreators(e.target.value)}
-              onFocus={() => creatorResults.length && setCreatorDropOpen(true)}
-              placeholder="Type a creator name…"
+              placeholder="Type a creator name or @username…"
               autoFocus
               autoComplete="off"
             />
-            {creatorDropOpen && creatorResults.length > 0 && (
+            {/* Results render INLINE (in the modal's normal flow) so the modal's
+                scroll container can never clip them, and so the box always shows
+                feedback — searching, an error, matches, or "no matches". */}
+            {creatorDropOpen && (
               <div style={{
-                position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 50,
+                marginTop: 6,
                 background: 'var(--surface, #fff)', border: '1px solid var(--border, #e2e8f0)',
-                borderRadius: 8, boxShadow: '0 4px 16px rgba(0,0,0,.12)', maxHeight: 220, overflowY: 'auto'
+                borderRadius: 8, maxHeight: 240, overflowY: 'auto'
               }}>
-                {creatorResults.map((c) => {
+                {creatorSearching && (
+                  <div className="text-xs muted" style={{ padding: '10px 12px' }}>Searching…</div>
+                )}
+                {!creatorSearching && creatorError && (
+                  <div className="text-xs" style={{ padding: '10px 12px', color: 'var(--red)' }}>{creatorError}</div>
+                )}
+                {!creatorSearching && !creatorError && creatorResults.length === 0 && (
+                  <div className="text-xs muted" style={{ padding: '10px 12px' }}>
+                    No signed-up creators match “{creatorSearch}”.
+                  </div>
+                )}
+                {!creatorSearching && creatorResults.map((c) => {
                   const handle = c.instagramHandle || c.username || c.handle || ''
                   const name = c.name || c.fullName || handle
+                  // Raw Instagram profilePicture URLs are hotlink-blocked/expired,
+                  // so load through the backend avatar proxy (it refreshes the URL
+                  // via the Graph API when needed). The proxy is keyed by the
+                  // opaque publicId (findByHandle → publicId), NOT the @handle.
+                  const photo = c.publicId ? `${API_BASE}/public/avatar/${encodeURIComponent(c.publicId)}` : ''
+                  const initial = (name || handle || '?').trim().charAt(0).toUpperCase()
                   return (
                     <div
                       key={c._id}
                       onMouseDown={() => pickCreator(c)}
-                      style={{ padding: '8px 12px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10 }}
-                      onMouseEnter={(e) => e.currentTarget.style.background = 'var(--hover, #f1f5f9)'}
+                      style={{ padding: '8px 12px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10, borderTop: '1px solid var(--border)' }}
+                      onMouseEnter={(e) => e.currentTarget.style.background = 'var(--surface-alt, #f1f5f9)'}
                       onMouseLeave={(e) => e.currentTarget.style.background = ''}
                     >
-                      {c.profilePicUrl && <img src={c.profilePicUrl} alt="" style={{ width: 28, height: 28, borderRadius: '50%', objectFit: 'cover' }} />}
+                      {/* Initial-letter circle as the base; the proxied photo sits
+                          on top and covers it when it loads. If the photo fails
+                          (no publicId / expired / no token), it hides and the
+                          initial shows through — so there's never a broken icon. */}
+                      <span style={{
+                        position: 'relative', width: 28, height: 28, borderRadius: '50%',
+                        flexShrink: 0, overflow: 'hidden', display: 'grid', placeItems: 'center',
+                        background: 'var(--accent, #6b7688)', color: '#fff', fontSize: 12, fontWeight: 700
+                      }}>
+                        {initial}
+                        {photo && (
+                          <img
+                            src={photo}
+                            alt=""
+                            style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }}
+                            onError={(e) => { e.currentTarget.style.display = 'none' }}
+                          />
+                        )}
+                      </span>
                       <div>
                         <div style={{ fontWeight: 600, fontSize: 13 }}>{name}</div>
                         {handle && <div style={{ fontSize: 11, opacity: .6 }}>@{handle}</div>}
@@ -319,7 +391,23 @@ export default function Landing() {
                 })}
               </div>
             )}
-            <span className="text-xs muted">Name, profile photo, followers and score are fetched automatically.</span>
+            <span className="text-xs muted" style={{ marginTop: 6 }}>Pick a signed-up creator, or type their exact Instagram username. Name, photo, followers and score are fetched automatically.</span>
+          </div>
+        )}
+
+        {!isBrand && (
+          <div className="field">
+            <label>Testimonial</label>
+            <textarea
+              className="input"
+              rows={3}
+              value={form.quote}
+              onChange={(e) => setForm({ ...form, quote: limitWords(e.target.value, MAX_QUOTE_WORDS) })}
+              placeholder="What they said about Creasume…"
+            />
+            <span className="text-xs muted">
+              {form.quote.trim() ? form.quote.trim().split(/\s+/).filter(Boolean).length : 0}/{MAX_QUOTE_WORDS} words max · shown on their card on the landing page
+            </span>
           </div>
         )}
 

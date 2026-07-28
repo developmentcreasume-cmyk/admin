@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import Badge, { FoundingBadge, SubscriptionBadge } from '../components/Badge.jsx'
+import Badge, { FoundingBadge, SubscriptionBadge, BroughtByBadge } from '../components/Badge.jsx'
 import Modal from '../components/Modal.jsx'
 import ConfirmDialog from '../components/ConfirmDialog.jsx'
-import { api } from '../services/api.js'
+import { api, API_BASE } from '../services/api.js'
 import ProfileTab from './cardBuilder/ProfileTab.jsx'
 import StatsTab from './cardBuilder/StatsTab.jsx'
 import AudienceTab from './cardBuilder/AudienceTab.jsx'
@@ -101,6 +101,11 @@ function adaptDetail(detail) {
     plan: (creatorDoc.planTier || 'free').replace(/^\w/, (c) => c.toUpperCase()),
     founding: creatorDoc.isFoundingCreator,
     verified: creatorDoc.isVerified,
+    // Brand attribution — when set, replaces the Founding badge on the public
+    // card with a "Brought by <name>" badge tinted from the brand's logo.
+    brandName: creatorDoc.broughtByBrand?.name || '',
+    brandHasLogo: !!creatorDoc.broughtByBrand?.hasLogo,
+    brandColor: creatorDoc.broughtByBrand?.color || null,
     cardActive: creatorDoc.cardActive,
     slug: creatorDoc.slug || '',
     // Benchmark reward (Creasume Score raw points hit 500 → admin verifies → coupon).
@@ -163,6 +168,12 @@ export default function CreatorDetail() {
   const [founding, setFounding] = useState(false)
   const [verified, setVerified] = useState(false)
   const [savingBadges, setSavingBadges] = useState(false)
+  const [brandName, setBrandName] = useState('')
+  const [brandHasLogo, setBrandHasLogo] = useState(false)
+  const [brandColor, setBrandColor] = useState(null)
+  // Pending logo pick: null = unchanged, a data: URL = a newly picked file.
+  const [brandLogoDataUrl, setBrandLogoDataUrl] = useState(null)
+  const [brandLogoErr, setBrandLogoErr] = useState('')
   const [cardActive, setCardActive] = useState(false)
   const [slug, setSlug] = useState('')
   const [linkCopied, setLinkCopied] = useState(false)
@@ -199,6 +210,10 @@ export default function CreatorDetail() {
         setVerified(adapted.verified || adapted.founding)
         setCardActive(adapted.cardActive)
         setSlug(adapted.slug)
+        setBrandName(adapted.brandName)
+        setBrandHasLogo(adapted.brandHasLogo)
+        setBrandColor(adapted.brandColor)
+        setBrandLogoDataUrl(null)
         setDraft({
           niche: adapted.niche,
           location: adapted.location,
@@ -264,6 +279,22 @@ export default function CreatorDetail() {
     setVerified((v) => !v)
   }
 
+  // Brand logo picking (mirrors the creator-side banner uploader): read the
+  // file as a data: URL client-side, then send it on "Save controls" — the
+  // backend compresses it and re-derives `brandColor` from its pixels.
+  function pickBrandLogo(e) {
+    const file = e.target.files && e.target.files[0]
+    e.target.value = '' // allow re-picking the same file
+    if (!file) return
+    setBrandLogoErr('')
+    if (!/^image\//.test(file.type)) { setBrandLogoErr('Please choose an image file.'); return }
+    if (file.size > 3 * 1024 * 1024) { setBrandLogoErr('Logo must be under 3 MB.'); return }
+    const reader = new FileReader()
+    reader.onload = () => setBrandLogoDataUrl(reader.result)
+    reader.onerror = () => setBrandLogoErr('Could not read that file.')
+    reader.readAsDataURL(file)
+  }
+
   function flash(msg) {
     setSavedMsg(msg)
     setTimeout(() => setSavedMsg(''), 2200)
@@ -277,11 +308,17 @@ export default function CreatorDetail() {
         isVerified: verified,
         cardActive,
         slug: slug.trim() || undefined,
+        broughtByBrandName: brandName.trim(),
+        ...(brandLogoDataUrl ? { broughtByBrandLogo: brandLogoDataUrl } : {}),
       })
       setFounding(res.creator.isFoundingCreator)
       setVerified(res.creator.isVerified)
       setCardActive(res.creator.cardActive)
       if (res.creator.slug) setSlug(res.creator.slug)
+      setBrandName(res.creator.broughtByBrand?.name || '')
+      setBrandHasLogo(!!res.creator.broughtByBrand?.hasLogo)
+      setBrandColor(res.creator.broughtByBrand?.color || null)
+      setBrandLogoDataUrl(null)
       flash('Saved')
     } catch (err) {
       flash(err.message || 'Save failed')
@@ -416,7 +453,7 @@ export default function CreatorDetail() {
             <div className="row items-center gap-8 flex-wrap">
               <span className="muted text-sm">{creator.handle}</span>
               <Badge tone="neutral">{creator.plan}</Badge>
-              {founding && <FoundingBadge />}
+              {brandName ? <BroughtByBadge name={brandName} color={brandColor} /> : founding ? <FoundingBadge /> : null}
               <SubscriptionBadge status={creator.subscription} />
             </div>
             {creator.email && (
@@ -609,6 +646,36 @@ export default function CreatorDetail() {
         <ControlToggle label="Verified tick" on={verified} onText="Verified" offText="Not verified" onToggle={toggleVerified} />
         <Divider />
         <ControlToggle label="Public Influence Card" on={cardActive} onText="Active" offText="Inactive" onToggle={() => setCardActive((v) => !v)} />
+        <Divider />
+        <div style={{ minWidth: 260 }}>
+          <label className="text-xs fw-600 muted" style={{ display: 'block', marginBottom: 8 }}>
+            Brought by a brand <span className="faint">(overrides the Founding badge)</span>
+          </label>
+          <div className="row items-center gap-8">
+            <input
+              className="input"
+              style={{ maxWidth: 180 }}
+              value={brandName}
+              onChange={(e) => setBrandName(e.target.value)}
+              placeholder="Brand name"
+            />
+            <label className="btn btn-sm" style={{ cursor: 'pointer' }}>
+              {brandLogoDataUrl || brandHasLogo ? 'Change logo' : 'Upload logo'}
+              <input type="file" accept="image/*" onChange={pickBrandLogo} className="hidden" style={{ display: 'none' }} />
+            </label>
+            {(brandLogoDataUrl || (brandHasLogo && creator.publicId)) && (
+              <img
+                src={brandLogoDataUrl || `${API_BASE}/public/brand-logo/${creator.publicId}`}
+                alt="Brand logo"
+                style={{ width: 28, height: 28, objectFit: 'contain', borderRadius: 6, border: '1px solid var(--border)' }}
+              />
+            )}
+          </div>
+          <p className="text-xs faint" style={{ marginTop: 6 }}>
+            The badge color is auto-picked from the logo — no need to set one manually.
+          </p>
+          {brandLogoErr && <p className="text-xs" style={{ marginTop: 4, color: '#dc2626' }}>{brandLogoErr}</p>}
+        </div>
         <Divider />
         <div style={{ minWidth: 240 }}>
           <label className="text-xs fw-600 muted" style={{ display: 'block', marginBottom: 8 }}>Card link</label>
