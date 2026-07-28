@@ -171,6 +171,10 @@ export default function CreatorDetail() {
   const [brandName, setBrandName] = useState('')
   const [brandHasLogo, setBrandHasLogo] = useState(false)
   const [brandColor, setBrandColor] = useState(null)
+  // Cache-busts the logo image URL below — MUST change on every save (unlike
+  // `brandColor`, which two different logos can coincidentally share), or a
+  // re-uploaded logo can keep showing the browser/CDN-cached old image.
+  const [brandUpdatedAt, setBrandUpdatedAt] = useState(null)
   // Pending logo pick: null = unchanged, a data: URL = a newly picked file.
   const [brandLogoDataUrl, setBrandLogoDataUrl] = useState(null)
   const [brandLogoErr, setBrandLogoErr] = useState('')
@@ -213,6 +217,7 @@ export default function CreatorDetail() {
         setBrandName(adapted.brandName)
         setBrandHasLogo(adapted.brandHasLogo)
         setBrandColor(adapted.brandColor)
+        setBrandUpdatedAt(c.updatedAt || null)
         setBrandLogoDataUrl(null)
         setDraft({
           niche: adapted.niche,
@@ -329,6 +334,7 @@ export default function CreatorDetail() {
       setBrandName(res.creator.broughtByBrand?.name || '')
       setBrandHasLogo(!!res.creator.broughtByBrand?.hasLogo)
       setBrandColor(res.creator.broughtByBrand?.color || null)
+      setBrandUpdatedAt(res.creator.updatedAt || null)
       setBrandLogoDataUrl(null)
       flash('Saved')
     } catch (err) {
@@ -676,11 +682,12 @@ export default function CreatorDetail() {
             </label>
             {(brandLogoDataUrl || (brandHasLogo && creator.publicId)) && (
               <img
-                // `?v=color` busts the browser's cache on this fixed URL — the
-                // route is served with a 1hr Cache-Control, so without a
-                // changing query param a newly-changed logo would keep
-                // showing the OLD cached image after a re-upload.
-                src={brandLogoDataUrl || `${API_BASE}/public/brand-logo/${creator.publicId}?v=${encodeURIComponent(brandColor || '')}`}
+                // `?v=updatedAt` busts the browser's cache on this fixed URL —
+                // the route is served with a 1hr Cache-Control, so without a
+                // changing query param a re-uploaded logo could keep showing
+                // the OLD cached image. Uses `updatedAt` (not `color`) because
+                // two different logos can coincidentally extract the same color.
+                src={brandLogoDataUrl || `${API_BASE}/public/brand-logo/${creator.publicId}?v=${encodeURIComponent(brandUpdatedAt || '')}`}
                 alt="Brand logo"
                 style={{ width: 28, height: 28, objectFit: 'contain', borderRadius: 6, border: '1px solid var(--border)' }}
               />
