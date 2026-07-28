@@ -12,7 +12,10 @@ import PortfolioTab from './cardBuilder/PortfolioTab.jsx'
 import PackagesTab from './cardBuilder/PackagesTab.jsx'
 import PreviewTab from './cardBuilder/PreviewTab.jsx'
 
-// Public site that serves the live Influence Card (creasume.com/<username>/<publicId>).
+// Public site that serves the live Influence Card. Cards resolve by username,
+// slug, OR publicId (see Creator.findByHandle), so creasume.com/<username> is
+// the canonical shareable link now — the longer <username>/<publicId> form
+// still works too, for any links already shared before this changed.
 const PUBLIC_SITE = (import.meta.env.VITE_PUBLIC_URL || 'https://creasume.com').replace(/\/+$/, '')
 
 const TABS = ['Profile', 'Stats', 'Audience', 'Posts', 'Collaboration', 'Packages', 'Preview']
@@ -479,10 +482,10 @@ export default function CreatorDetail() {
           </div>
         </div>
         <div className="row items-center gap-8">
-          {creator.username && creator.publicId && (
+          {creator.username && (
             <a
               className="btn"
-              href={`${PUBLIC_SITE}/${encodeURIComponent(creator.username)}/${creator.publicId}`}
+              href={`${PUBLIC_SITE}/${encodeURIComponent(creator.username)}`}
               target="_blank"
               rel="noopener noreferrer"
               title={cardActive ? 'Open the live public card' : 'Card is inactive — turn “Public Influence Card” on to make it live'}
@@ -706,12 +709,13 @@ export default function CreatorDetail() {
         <Divider />
         <div style={{ minWidth: 240 }}>
           <label className="text-xs fw-600 muted" style={{ display: 'block', marginBottom: 8 }}>Card link</label>
-          {creator.publicId ? (
+          {(creator.username || creator.publicId) ? (
             (() => {
-              // The REAL shareable card URL (cards open by publicId only). The
-              // "slug" below is just an optional vanity handle, not the live link.
+              // The shareable card URL — resolves by username, vanity slug, or
+              // publicId (see Creator.findByHandle), so the short
+              // creasume.com/<username> form is the canonical link now.
               const cardUrl = creator.username
-                ? `${PUBLIC_SITE}/${encodeURIComponent(creator.username)}/${creator.publicId}`
+                ? `${PUBLIC_SITE}/${encodeURIComponent(creator.username)}`
                 : `${PUBLIC_SITE}/${creator.publicId}`
               const copy = () => {
                 navigator.clipboard?.writeText(cardUrl).then(() => {

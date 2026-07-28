@@ -132,6 +132,12 @@ export const api = {
 
   // Refer & Earn overview (program state, totals, recent referral events)
   referrals: (limit = 100) => get(`/admin/referrals?limit=${limit}`),
+
+  // Brand-managed creator rosters (shareable "creasume.com/roster/:slug" pages).
+  creatorBrands: () => get('/admin/creators/brands'),
+  creatorBrandLogo: (name) => get(`/admin/creators/brand-logo${qs({ name })}`),
+  rosterByBrand: (brandName) => get(`/admin/rosters/by-brand${qs({ brandName })}`),
+  generateRoster: (brandName, creatorIds) => post('/admin/rosters/generate', { brandName, creatorIds }),
 }
 
 // Build a query string from a params object, skipping empty values.

@@ -7,6 +7,8 @@ import { api } from '../services/api.js'
 
 const PLANS = ['All', 'Starter', 'Core', 'Campaign']
 
+const SHOW_BRAND_ROSTER_UI = true
+
 // Map backend subscriptionStatus → the label SubscriptionBadge expects.
 const SUB_LABEL = {
   active: 'Active',
@@ -28,23 +30,75 @@ export default function Creators() {
   const [query, setQuery] = useState('')
   const [plan, setPlan] = useState('All')
   const [foundingOnly, setFoundingOnly] = useState(false)
+  const [brands, setBrands] = useState([])
+  const [brandFilter, setBrandFilter] = useState('All')
 
   const [addOpen, setAddOpen] = useState(false)
   const [form, setForm] = useState({ name: '', instagramHandle: '', email: '', plan: 'Starter' })
   const [saving, setSaving] = useState(false)
 
+  // Row selection for the "Generate shareable page" flow — cleared whenever
+  // any filter changes so a selection can't reference a now-hidden row.
+  const [selectedIds, setSelectedIds] = useState(new Set())
+  const [existingRoster, setExistingRoster] = useState(null)
+  const [generating, setGenerating] = useState(false)
+  const [rosterModalOpen, setRosterModalOpen] = useState(false)
+  const [rosterResult, setRosterResult] = useState(null)
+  const [linkCopied, setLinkCopied] = useState(false)
+
   function load() {
     setLoading(true)
+    setSelectedIds(new Set())
     api
-      .creators({ search: query, plan, foundingOnly })
+      .creators({ search: query, plan, foundingOnly, brand: brandFilter })
       .then((res) => setRows(res.data || []))
       .catch((e) => setError(e.message))
       .finally(() => setLoading(false))
   }
 
-  useEffect(load, [query, plan, foundingOnly])
+  useEffect(load, [query, plan, foundingOnly, brandFilter])
+
+  useEffect(() => {
+    api.creatorBrands().then((r) => setBrands(r.brands || [])).catch(() => {})
+  }, [])
+
+  // Does the currently-filtered brand already have a live shareable page?
+  useEffect(() => {
+    if (brandFilter === 'All') { setExistingRoster(null); return }
+    let alive = true
+    api.rosterByBrand(brandFilter).then((r) => { if (alive) setExistingRoster(r.roster) }).catch(() => { if (alive) setExistingRoster(null) })
+    return () => { alive = false }
+  }, [brandFilter])
 
   const liveCards = useMemo(() => rows.filter((r) => r.cardActive).length, [rows])
+
+  function toggleSelected(id) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
+  function toggleSelectAll() {
+    setSelectedIds((prev) => (prev.size === rows.length ? new Set() : new Set(rows.map((r) => r._id))))
+  }
+
+  async function generateRosterLink() {
+    setGenerating(true)
+    try {
+      const res = await api.generateRoster(brandFilter, Array.from(selectedIds))
+      setRosterResult(res.roster)
+      setExistingRoster(res.roster)
+      setLinkCopied(false)
+      setRosterModalOpen(true)
+    } catch (e) {
+      setError(e.message)
+    } finally {
+      setGenerating(false)
+    }
+  }
 
   async function createCreator() {
     if (!form.name.trim()) return
@@ -86,12 +140,49 @@ export default function Creators() {
           <input type="checkbox" checked={foundingOnly} onChange={(e) => setFoundingOnly(e.target.checked)} />
           Founding only
         </label>
+        {SHOW_BRAND_ROSTER_UI && (
+          <select className="select" style={{ width: 'auto' }} value={brandFilter} onChange={(e) => setBrandFilter(e.target.value)}>
+            <option value="All">Managed by Brand</option>
+            {brands.map((b) => (
+              <option key={b} value={b}>{b}</option>
+            ))}
+          </select>
+        )}
       </div>
+
+      {SHOW_BRAND_ROSTER_UI && brandFilter !== 'All' && (
+        <div className="row items-center gap-12 flex-wrap" style={{ marginBottom: 16 }}>
+          {existingRoster && (
+            <span className="text-sm muted">
+              <strong>{existingRoster.brandName}</strong> — live link:{' '}
+              <a href={existingRoster.url} target="_blank" rel="noreferrer">{existingRoster.url}</a>
+              {' '}({existingRoster.creatorCount} creators)
+            </span>
+          )}
+          <button
+            className="btn btn-primary"
+            disabled={selectedIds.size === 0 || generating}
+            onClick={generateRosterLink}
+          >
+            {generating ? 'Generating…' : `${existingRoster ? 'Update' : 'Generate'} shareable page (${selectedIds.size})`}
+          </button>
+        </div>
+      )}
 
       <div className="card table-wrap">
         <table className="table">
           <thead>
             <tr>
+              {SHOW_BRAND_ROSTER_UI && (
+                <th style={{ width: 36 }}>
+                  <input
+                    type="checkbox"
+                    checked={rows.length > 0 && selectedIds.size === rows.length}
+                    onChange={toggleSelectAll}
+                    aria-label="Select all"
+                  />
+                </th>
+              )}
               <th>Creator</th>
               <th>Instagram</th>
               <th>Plan</th>
@@ -105,6 +196,16 @@ export default function Creators() {
           <tbody>
             {rows.map((r) => (
               <tr key={r._id} style={{ cursor: 'pointer' }} onClick={() => navigate(`/creators/${r._id}`)}>
+                {SHOW_BRAND_ROSTER_UI && (
+                  <td onClick={(e) => e.stopPropagation()}>
+                    <input
+                      type="checkbox"
+                      checked={selectedIds.has(r._id)}
+                      onChange={() => toggleSelected(r._id)}
+                      aria-label={`Select ${r.name || r.username}`}
+                    />
+                  </td>
+                )}
                 <td>
                   <div className="row items-center gap-12">
                     <span className="avatar">{initials(r.name || r.username)}</span>
@@ -160,13 +261,16 @@ export default function Creators() {
             ))}
             {!loading && rows.length === 0 && (
               <tr>
-                <td colSpan={8}>
+                <td colSpan={SHOW_BRAND_ROSTER_UI ? 9 : 8}>
                   <div className="empty">No creators match your filters.</div>
                 </td>
               </tr>
             )}
             {loading && Array.from({ length: 6 }).map((_, i) => (
               <tr key={`sk-${i}`} className="skeleton-row">
+                {SHOW_BRAND_ROSTER_UI && (
+                  <td><span className="skeleton" style={{ width: 16, height: 16, display: 'inline-block' }} /></td>
+                )}
                 <td>
                   <div className="row items-center gap-12">
                     <span className="skeleton skeleton-circle" style={{ width: 36, height: 36 }} />
@@ -225,6 +329,33 @@ export default function Creators() {
             <option>Core</option>
             <option>Campaign</option>
           </select>
+        </div>
+      </Modal>
+
+      <Modal
+        open={rosterModalOpen}
+        title="Shareable roster link"
+        onClose={() => setRosterModalOpen(false)}
+        footer={
+          <button className="btn btn-primary" onClick={() => setRosterModalOpen(false)}>
+            Done
+          </button>
+        }
+      >
+        <p className="text-sm muted">
+          {rosterResult?.brandName} — {rosterResult?.creatorCount} creator{rosterResult?.creatorCount === 1 ? '' : 's'}
+        </p>
+        <div className="row items-center gap-8" style={{ marginTop: 8 }}>
+          <input className="input" readOnly value={rosterResult?.url || ''} onFocus={(e) => e.target.select()} />
+          <button
+            className="btn btn-sm"
+            onClick={() => {
+              navigator.clipboard.writeText(rosterResult?.url || '')
+              setLinkCopied(true)
+            }}
+          >
+            {linkCopied ? 'Copied ✓' : 'Copy'}
+          </button>
         </div>
       </Modal>
     </div>
