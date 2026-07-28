@@ -295,6 +295,17 @@ export default function CreatorDetail() {
     reader.readAsDataURL(file)
   }
 
+  // Clears the brand name/logo/color locally (badge disappears immediately —
+  // falls back to the Founding badge if that's set). Only takes effect on the
+  // backend once "Save controls" is pressed, same as every other field here.
+  function cancelBrandAttribution() {
+    setBrandName('')
+    setBrandLogoDataUrl(null)
+    setBrandHasLogo(false)
+    setBrandColor(null)
+    setBrandLogoErr('')
+  }
+
   function flash(msg) {
     setSavedMsg(msg)
     setTimeout(() => setSavedMsg(''), 2200)
@@ -669,6 +680,11 @@ export default function CreatorDetail() {
                 alt="Brand logo"
                 style={{ width: 28, height: 28, objectFit: 'contain', borderRadius: 6, border: '1px solid var(--border)' }}
               />
+            )}
+            {(brandName || brandHasLogo || brandLogoDataUrl) && (
+              <button type="button" className="btn btn-sm" onClick={cancelBrandAttribution}>
+                Cancel
+              </button>
             )}
           </div>
           <p className="text-xs faint" style={{ marginTop: 6 }}>

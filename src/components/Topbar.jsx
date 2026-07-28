@@ -7,7 +7,6 @@ const TITLES = {
   '': 'Overview',
   creators: 'Creators',
   enquiries: 'Enquiries',
-  plans: 'Plans',
   payments: 'Payments',
   settings: 'Settings',
 }

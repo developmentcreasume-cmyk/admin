@@ -157,13 +157,28 @@ export default function Creators() {
                 </td>
               </tr>
             )}
-            {loading && (
-              <tr>
-                <td colSpan={8}>
-                  <div className="empty">Loading…</div>
+            {loading && Array.from({ length: 6 }).map((_, i) => (
+              <tr key={`sk-${i}`} className="skeleton-row">
+                <td>
+                  <div className="row items-center gap-12">
+                    <span className="skeleton skeleton-circle" style={{ width: 36, height: 36 }} />
+                    <div>
+                      <span className="skeleton skeleton-text" style={{ width: 120, display: 'block' }} />
+                      <span className="skeleton skeleton-text" style={{ width: 80, display: 'block', marginTop: 6, height: 10 }} />
+                    </div>
+                  </div>
+                </td>
+                <td><span className="skeleton skeleton-text" style={{ width: 96, height: 20, borderRadius: 999 }} /></td>
+                <td><span className="skeleton skeleton-text" style={{ width: 60, height: 20, borderRadius: 999 }} /></td>
+                <td><span className="skeleton skeleton-text" style={{ width: 70, height: 20, borderRadius: 999 }} /></td>
+                <td><span className="skeleton skeleton-text" style={{ width: 44, height: 20, borderRadius: 999 }} /></td>
+                <td><span className="skeleton skeleton-text" style={{ width: 70, height: 20, borderRadius: 999 }} /></td>
+                <td><span className="skeleton skeleton-text" style={{ width: 130 }} /></td>
+                <td style={{ textAlign: 'right' }}>
+                  <span className="skeleton" style={{ width: 80, height: 28, borderRadius: 8, display: 'inline-block' }} />
                 </td>
               </tr>
-            )}
+            ))}
           </tbody>
         </table>
       </div>

@@ -6,7 +6,6 @@ import Overview from './pages/Overview.jsx'
 import Creators from './pages/Creators.jsx'
 import CreatorDetail from './pages/CreatorDetail.jsx'
 import Enquiries from './pages/Enquiries.jsx'
-import Plans from './pages/Plans.jsx'
 import Payments from './pages/Payments.jsx'
 import Benchmark from './pages/Benchmark.jsx'
 import Referrals from './pages/Referrals.jsx'
@@ -29,7 +28,6 @@ export default function App() {
         <Route path="creators" element={<Creators />} />
         <Route path="creators/:id" element={<CreatorDetail />} />
         <Route path="enquiries" element={<Enquiries />} />
-        <Route path="plans" element={<Plans />} />
         <Route path="payments" element={<Payments />} />
         <Route path="benchmark" element={<Benchmark />} />
         <Route path="referrals" element={<Referrals />} />
