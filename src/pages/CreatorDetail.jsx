@@ -666,7 +666,7 @@ export default function CreatorDetail() {
         <Divider />
         <div style={{ minWidth: 260 }}>
           <label className="text-xs fw-600 muted" style={{ display: 'block', marginBottom: 8 }}>
-            Brought by a brand <span className="faint">(overrides the Founding badge)</span>
+            Managed by a brand <span className="faint">(overrides the Founding badge)</span>
           </label>
           <div className="row items-center gap-8">
             <input

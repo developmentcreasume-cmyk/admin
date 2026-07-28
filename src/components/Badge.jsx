@@ -28,7 +28,7 @@ export function BroughtByBadge({ name, color }) {
       className="badge"
       style={{ color: c, background: hexToRgba(c, 0.12), border: `1px solid ${hexToRgba(c, 0.35)}` }}
     >
-      Brought by {name}
+      Managed by {name}
     </span>
   )
 }
