@@ -137,7 +137,13 @@ export const api = {
   creatorBrands: () => get('/admin/creators/brands'),
   creatorBrandLogo: (name) => get(`/admin/creators/brand-logo${qs({ name })}`),
   rosterByBrand: (brandName) => get(`/admin/rosters/by-brand${qs({ brandName })}`),
-  generateRoster: (brandName, creatorIds) => post('/admin/rosters/generate', { brandName, creatorIds }),
+  generateRoster: (brandName, creatorIds, contact = {}) =>
+    post('/admin/rosters/generate', {
+      brandName,
+      creatorIds,
+      contactPhone: contact.phone || '',
+      contactEmail: contact.email || '',
+    }),
 }
 
 // Build a query string from a params object, skipping empty values.

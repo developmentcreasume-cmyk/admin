@@ -108,7 +108,13 @@ export default function StatsTab({ creator, draft, setDraft }) {
       <div className="row flex-wrap gap-16" style={{ marginBottom: 20 }}>
         <Metric label="Reach (30d)" value={Number(draft.stats.reach).toLocaleString()} />
         <Metric label="Impressions (30d)" value={Number(draft.stats.impressions).toLocaleString()} />
-        <Metric label="Engagement rate" value={`${draft.stats.engagement}%`} />
+        {/* null = Instagram gave us no reach to divide by, so the rate is
+            genuinely unknown. Showing "0%" there would read as "nobody engages
+            with this creator", which is a different (and wrong) claim. */}
+        <Metric
+          label="Engagement rate"
+          value={draft.stats.engagement == null ? '—' : `${draft.stats.engagement}%`}
+        />
         <Metric label="Followers" value={Number(draft.stats.followers).toLocaleString()} />
       </div>
 

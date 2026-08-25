@@ -135,7 +135,9 @@ function adaptDetail(detail) {
       followers: influencer.followersCount || 0,
       following: influencer.followsCount || 0,
       posts: influencer.mediaCount || 0,
-      engagement: analytics.engagementRate || 0,
+      // Preserve null ("not measurable") — StatsTab renders it as "—" rather
+      // than the misleading "0%".
+      engagement: analytics.engagementRate ?? null,
       reach: analytics.reach || 0,
       impressions: analytics.views || 0,
       avgLikes,

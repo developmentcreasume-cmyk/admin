@@ -41,6 +41,9 @@ export default function Creators() {
   // any filter changes so a selection can't reference a now-hidden row.
   const [selectedIds, setSelectedIds] = useState(new Set())
   const [existingRoster, setExistingRoster] = useState(null)
+  // Brand contact details shown on the public roster page.
+  const [rosterPhone, setRosterPhone] = useState('')
+  const [rosterEmail, setRosterEmail] = useState('')
   const [generating, setGenerating] = useState(false)
   const [rosterModalOpen, setRosterModalOpen] = useState(false)
   const [rosterResult, setRosterResult] = useState(null)
@@ -64,9 +67,14 @@ export default function Creators() {
 
   // Does the currently-filtered brand already have a live shareable page?
   useEffect(() => {
-    if (brandFilter === 'All') { setExistingRoster(null); return }
+    if (brandFilter === 'All') { setExistingRoster(null); setRosterPhone(''); setRosterEmail(''); return }
     let alive = true
-    api.rosterByBrand(brandFilter).then((r) => { if (alive) setExistingRoster(r.roster) }).catch(() => { if (alive) setExistingRoster(null) })
+    api.rosterByBrand(brandFilter).then((r) => {
+      if (!alive) return
+      setExistingRoster(r.roster)
+      setRosterPhone(r.roster?.contactPhone || '')
+      setRosterEmail(r.roster?.contactEmail || '')
+    }).catch(() => { if (alive) { setExistingRoster(null); setRosterPhone(''); setRosterEmail('') } })
     return () => { alive = false }
   }, [brandFilter])
 
@@ -88,7 +96,7 @@ export default function Creators() {
   async function generateRosterLink() {
     setGenerating(true)
     try {
-      const res = await api.generateRoster(brandFilter, Array.from(selectedIds))
+      const res = await api.generateRoster(brandFilter, Array.from(selectedIds), { phone: rosterPhone, email: rosterEmail })
       setRosterResult(res.roster)
       setExistingRoster(res.roster)
       setLinkCopied(false)
@@ -151,21 +159,32 @@ export default function Creators() {
       </div>
 
       {SHOW_BRAND_ROSTER_UI && brandFilter !== 'All' && (
-        <div className="row items-center gap-12 flex-wrap" style={{ marginBottom: 16 }}>
+        <div style={{ marginBottom: 16 }}>
           {existingRoster && (
-            <span className="text-sm muted">
+            <div className="text-sm muted" style={{ marginBottom: 10 }}>
               <strong>{existingRoster.brandName}</strong> — live link:{' '}
               <a href={existingRoster.url} target="_blank" rel="noreferrer">{existingRoster.url}</a>
               {' '}({existingRoster.creatorCount} creators)
-            </span>
+            </div>
           )}
-          <button
-            className="btn btn-primary"
-            disabled={selectedIds.size === 0 || generating}
-            onClick={generateRosterLink}
-          >
-            {generating ? 'Generating…' : `${existingRoster ? 'Update' : 'Generate'} shareable page (${selectedIds.size})`}
-          </button>
+          {/* Brand contact shown on the public roster page (optional). */}
+          <div className="row items-end gap-12 flex-wrap">
+            <div className="field" style={{ marginBottom: 0, minWidth: 200 }}>
+              <label className="text-xs fw-600 muted" style={{ display: 'block', marginBottom: 4 }}>Contact phone (shown on the link)</label>
+              <input className="input" placeholder="+91 98765 43210" value={rosterPhone} onChange={(e) => setRosterPhone(e.target.value)} />
+            </div>
+            <div className="field" style={{ marginBottom: 0, minWidth: 240 }}>
+              <label className="text-xs fw-600 muted" style={{ display: 'block', marginBottom: 4 }}>Contact email (shown on the link)</label>
+              <input className="input" type="email" placeholder="brand@example.com" value={rosterEmail} onChange={(e) => setRosterEmail(e.target.value)} />
+            </div>
+            <button
+              className="btn btn-primary"
+              disabled={selectedIds.size === 0 || generating}
+              onClick={generateRosterLink}
+            >
+              {generating ? 'Generating…' : `${existingRoster ? 'Update' : 'Generate'} shareable page (${selectedIds.size})`}
+            </button>
+          </div>
         </div>
       )}
 
