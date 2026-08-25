@@ -7,7 +7,7 @@ import { api } from '../services/api.js'
 
 const PLANS = ['All', 'Starter', 'Core', 'Campaign']
 
-const SHOW_BRAND_ROSTER_UI = false
+const SHOW_BRAND_ROSTER_UI = true
 
 // Map backend subscriptionStatus → the label SubscriptionBadge expects.
 const SUB_LABEL = {
